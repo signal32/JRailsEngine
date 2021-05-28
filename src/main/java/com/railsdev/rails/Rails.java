@@ -72,7 +72,7 @@ public class Rails extends CoreApplication{
     public static void main(String[] args) {
 
         //Compile shaders
-        //ShaderCompiler.compile("dev/shaders/src");
+        ShaderCompiler.compile("dev/shaders/src");
 
 
         Application.Config config = new Config();
@@ -81,10 +81,16 @@ public class Rails extends CoreApplication{
         config.title = "Rails";
         config.renderer = "vulkan";
 
-        Rails rails = new Rails();
-        rails.start(config);
+        try {
+            Rails rails = new Rails();
+            rails.start(config);
+            rails.shutdown();
+        }
+        catch (Exception e){
+            System.out.println(e.getMessage());
+        }
 
-        rails.shutdown();
+
     }
 
     @Override

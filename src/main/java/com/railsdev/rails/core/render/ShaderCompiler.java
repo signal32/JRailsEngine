@@ -7,8 +7,13 @@ import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 public class ShaderCompiler {
-    private static final String OUT_DIR = "dev/shaders/bin/";
-    private static final String SHADERC_DIR = "dev/shaders/src/";
+    //private static final String OUT_DIR = "dev/shaders/bin/";
+    //private static final String SHADERC_DIR = "dev/shaders/src/";
+    private static final String SHADERS = "dev/shaders/";
+    private static final String BGFX_SRC = SHADERS + "bgfx/";
+    private static final String BGFX_COMMON = SHADERS + "common/";
+    private static final String SHADERC_DIR = SHADERS + "src/";
+    private static final String OUT_DIR = SHADERS + "bin/";
 
     public static void compile(String dir){
         System.out.println("Compiling shaders:");
@@ -25,20 +30,31 @@ public class ShaderCompiler {
         }
     }
 
-    private static void compile(Path shader, String output, String platform){
+    private static void compile(Path shader, String output, String profile){
 
         String shaderPath = shader.toString();
         String outputPath = output+shader.getFileName();
         String name = shader.getFileName().toString();
-        String type = shader.getFileName().toString().startsWith("vs_")? "v" : "f";
+        String type = shader.getFileName().toString().startsWith("vs_")? "vertex" : "fragment";
+        String platform = profile.equals("spirv")? "linux" : "windows";
 
         try{
-            var process = new ProcessBuilder(
+            //var process
+                    var x= new ProcessBuilder(
                     SHADERC_DIR + "shaderc",
                     "-f",shader.toString(),
-                    "-o",OUT_DIR + platform + "/" + shader.getFileName().toString().substring(0,name.lastIndexOf('.')) + ".bin",
+                    "-o",OUT_DIR + profile + "/" + shader.getFileName().toString().substring(0,name.lastIndexOf('.')) + ".bin",
                     "--type", type,
-                    "--platform", platform).start();
+                    "--platform", platform,
+                    "--profile", profile,
+                    "-i", BGFX_SRC,
+                    "-i", BGFX_COMMON + "shaderlib.sh",
+                    "-i", BGFX_COMMON + "common.sh");
+
+                    var cmd = x.command();
+
+                    var process = x.start();
+
 
             InputStream is = process.getInputStream();
             InputStreamReader isr = new InputStreamReader(is);

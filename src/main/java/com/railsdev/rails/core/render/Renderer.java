@@ -26,7 +26,7 @@ public class Renderer {
         BGFXInit init = BGFXInit.mallocStack(stack);
         bgfx_init_ctor(init);
         init.resolution(it -> it.width(config.width).height(config.height).reset(BGFX_RESET_VSYNC));
-        init.type(BGFX_RENDERER_TYPE_OPENGL);
+        init.type(BGFX_RENDERER_TYPE_VULKAN);
 
         init.platformData().nwh(config.nativeWindowHandle);
 
