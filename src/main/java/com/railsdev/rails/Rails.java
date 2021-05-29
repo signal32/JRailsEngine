@@ -78,6 +78,8 @@ public class Rails extends CoreApplication{
     float speedz = 0;
     boolean debug = false;
 
+    Camera cameraObject;
+
     Mesh testMesh;
 
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
