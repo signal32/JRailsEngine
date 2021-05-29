@@ -3,6 +3,8 @@ package com.railsdev.rails;
 import com.railsdev.rails.core.context.Application;
 import com.railsdev.rails.core.context.CoreApplication;
 import com.railsdev.rails.core.render.*;
+import com.railsdev.rails.core.render.debug.DebugCube;
+import com.railsdev.rails.core.render.debug.DebugCubeTex;
 import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
@@ -16,6 +18,8 @@ import java.nio.FloatBuffer;
 import static org.lwjgl.bgfx.BGFX.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 import static org.lwjgl.system.MemoryUtil.nmemFree;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 
 public class Rails extends CoreApplication{
@@ -54,13 +58,25 @@ public class Rails extends CoreApplication{
     private short ibh;
     private short program;
 
-    private Matrix4x3f view = new Matrix4x3f();
+    private short uniformTexColor;
+    private short uniformTexNormal;
+
+    private Vector3f camera = new Vector3f(0.0f,0.0f,3.0f);
+    private Vector3f cameraTarget = new Vector3f(0.0f,0.0f,0.0f);
+
+    private short textureColor;
+    private Matrix4x3f view = new Matrix4x3f();     // View transformation matrix -- Transformation of vertices relative to camera space
     private FloatBuffer viewBuf;
-    private Matrix4f proj = new Matrix4f();
+    private Matrix4f proj = new Matrix4f();         // Projection transformation matrix (perpective) -- Transformation to clip space
     private FloatBuffer projBuf;
-    private Matrix4x3f model = new Matrix4x3f();
+    private Matrix4x3f model = new Matrix4x3f();    // Model transformation matrix -- Transformation of object relative to world space
     private FloatBuffer modelBuf;
     float time = 0;
+
+    float speedx = 0;
+    float speedy = 0;
+    float speedz = 0;
+    boolean debug = false;
 
     Mesh testMesh;
 
@@ -89,57 +105,57 @@ public class Rails extends CoreApplication{
         catch (Exception e){
             System.out.println(e.getMessage());
         }
-
-
     }
+
+
 
     @Override
     public void drawEvent(double delta) {
 
-        bgfx_touch(0);
+        //bgfx_touch(0);
+        if (debug) {
 
-        bgfx_dbg_text_clear(0,false);
+            bgfx_dbg_text_clear(0, false);
 
-        bgfx_dbg_text_printf(80,15,0x1f,"lol bums");
+            bgfx_dbg_text_printf(80, 15, 0x1f, "lol bums");
 
-        bgfx_dbg_text_printf(0, 1, 0x1f, "Rails Debug");
-        bgfx_dbg_text_printf(0, 2, 0x3f, "Description: ");
+            bgfx_dbg_text_printf(0, 1, 0x1f, "Rails Debug");
+            bgfx_dbg_text_printf(0, 2, 0x3f, String.format("Camera: % 7.3f[ms] X: %f Y: %f Z = %f", speedz, camera.x, camera.y, camera.z));
 
-        bgfx_dbg_text_printf(0, 3, 0x0f, "Color can be changed with ANSI \u001b[9;me\u001b[10;ms\u001b[11;mc\u001b[12;ma\u001b[13;mp\u001b[14;me\u001b[0m code too.");
+            bgfx_dbg_text_printf(0, 3, 0x0f, "Color can be changed with ANSI \u001b[9;me\u001b[10;ms\u001b[11;mc\u001b[12;ma\u001b[13;mp\u001b[14;me\u001b[0m code too.");
 
-        bgfx_dbg_text_printf(80, 4, 0x0f, "\u001b[;0m    \u001b[;1m    \u001b[; 2m    \u001b[; 3m    \u001b[; 4m    \u001b[; 5m    \u001b[; 6m    \u001b[; 7m    \u001b[0m");
-        bgfx_dbg_text_printf(80, 10, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
+            bgfx_dbg_text_printf(80, 4, 0x0f, "\u001b[;0m    \u001b[;1m    \u001b[; 2m    \u001b[; 3m    \u001b[; 4m    \u001b[; 5m    \u001b[; 6m    \u001b[; 7m    \u001b[0m");
+            bgfx_dbg_text_printf(80, 10, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
+        }
+/*        Vector3f camera = new Vector3f(0.0f,0.0f,3.0f);
+        Vector3f cameraTarget = new Vector3f(0.0f,0.0f,0.0f);
+        Vector3f cameraDirection = camera.sub(cameraTarget).normalize();
+        Vector3f up = new Vector3f(0.0f,1.0f,0.0f);
+        Vector3f cameraRight = up.cross(cameraDirection).normalize();
+        Vector3f cameraUp = cameraDirection.cross(cameraRight);*/
 
-        BgfxUtilities.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f, 0.0f, -35.0f), view);
+        // Calculate view matrix
+        BgfxUtilities.lookAt(cameraTarget, camera, view);
+
+        // Calculate projection matrix
         BgfxUtilities.perspective(60.0f, 1920, 1080, 0.1f, 100.0f, proj);
 
+        // Send matrices to bgfx
         bgfx_set_view_transform(0, view.get4x4(viewBuf), proj.get(projBuf));
 
-        bgfx_dbg_text_printf(0, 3, 0x0f, String.format("Frame: %7.3f[ms]", delta));
-
         long encoder = bgfx_encoder_begin(false);
-        for (int yy = 0; yy < 11; ++yy) {
-            for (int xx = 0; xx < 11; ++xx) {
-                bgfx_encoder_set_transform(encoder,
-                        model.translation(
-                                -15.0f + xx * 3.0f,
-                                -15.0f + yy * 3.0f,
-                                0.0f)
-                                .rotateXYZ(
-                                        time + xx * 0.21f,
-                                        time + yy * 0.37f,
-                                        0.0f)
-                                .get4x4(modelBuf));
+        bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.01f),0).get4x4(modelBuf));
 
-                bgfx_encoder_set_vertex_buffer(encoder, 0, testMesh.vbh, 0, 8);
-                bgfx_encoder_set_index_buffer(encoder, testMesh.ibh, 0, 36);
+        bgfx_encoder_set_vertex_buffer(encoder, 0, testMesh.vbh, 0, 8);
+        bgfx_encoder_set_index_buffer(encoder, testMesh.ibh, 0, 36);
 
-                bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
+        //Bind textures
+        bgfx_encoder_set_texture(encoder,0,uniformTexColor,textureColor,0xffffffff);
 
-                bgfx_encoder_submit(encoder, 0, program, 0, 0);
+        bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
+
+        bgfx_encoder_submit(encoder, 0, program, 0, 0);
                 time+= 0.0001;
-            }
-        }
         bgfx_encoder_end(encoder);
 
 
@@ -150,24 +166,57 @@ public class Rails extends CoreApplication{
 
     @Override
     public void logicEvent(double delta) {
+        float acceleration = 0.01f;
+        float cameraSpeed = 0.5f;
 
+        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_PRESS)
+            speedz+= (speedz < cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_RELEASE)
+            speedz-= (speedz > 0) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_PRESS)
+            speedz-= (speedz > -cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_RELEASE)
+            speedz+= (speedz < 0) ? acceleration : 0;
+        //speedz-= (speedz > 0) ? acceleration : 0;
+
+        if(glfwGetKey(this.window,GLFW_KEY_TAB) == GLFW_PRESS)
+            debug = !debug;
+
+        if(glfwGetKey(this.window,GLFW_KEY_Q) == GLFW_PRESS){
+            camera.y += cameraSpeed;
+            //cameraTarget.y += cameraSpeed;
+        }
+        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_PRESS){
+            camera.y -= cameraSpeed;
+            //cameraTarget.y -= cameraSpeed;
+        }
+        camera.x += speedx;
+        camera.z += speedz;
+        camera.y += speedy;
     }
 
     @Override
     public void beforeStart(Application application) {
 
         Model testModel = Model.fromFile("dev/samples/test.obj");
-        testMesh = testModel.meshes[0];
+        //testMesh = testModel.meshes[0];
+        //testMesh = new DebugCube().create();
+        testMesh = new DebugCubeTex().create();
+
 
         try {
             Texture texture = new Texture("tex.png","uh");
             texture.create();
+
+            uniformTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_VEC4,0);
+            textureColor = BgfxUtilities.loadTexture("tex2.dds");
+
 /*            testMesh = new Mesh(cubeVertices, cubeIndices, texture)
                     .setVertexLayout(Mesh.VertexType.POSITION, Mesh.VertexType.COLOR)
                     .create();*/
 
-            short vs = BgfxUtilities.loadShader("vs_cubes");
-            short fs = BgfxUtilities.loadShader("fs_cubes");
+            short vs = BgfxUtilities.loadShader("vs_rBasicUnlit");
+            short fs = BgfxUtilities.loadShader("fs_rBasicUnlit");
 
             program = bgfx_create_program(vs, fs, true);
 

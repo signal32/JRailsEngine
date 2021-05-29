@@ -45,7 +45,6 @@ public class Mesh {
         layout = BGFXVertexLayout.calloc();
         int renderer = bgfx_get_renderer_type();
         bgfx_vertex_layout_begin(layout,renderer);
-
         for (var vertex : vertexLayout){
 
             switch (vertex){

@@ -227,7 +227,7 @@ public class BgfxUtilities {
         return bgfx_create_shader(bgfx_make_ref_release(shaderCode, releaseMemoryCb, NULL));
     }
 
-    static short loadTexture(String fileName) throws IOException {
+    public static short loadTexture(String fileName) throws IOException {
 
         //ByteBuffer textureData = loadResource("/org/lwjgl/demo/bgfx/textures/", fileName);
         ByteBuffer textureData = ResourceLoader.loadResource("dev/samples/" + fileName);
@@ -258,7 +258,7 @@ public class BgfxUtilities {
         dest.setPerspectiveLH(fovRadians, aspect, near, far, zZeroToOne);
     }
 
-    static void ortho(float left, float right, float bottom, float top, float zNear, float zFar, Matrix4x3f dest) {
+    public static void ortho(float left, float right, float bottom, float top, float zNear, float zFar, Matrix4x3f dest) {
         dest.setOrthoLH(left, right, bottom, top, zNear, zFar, zZeroToOne);
     }
 }

@@ -68,11 +68,11 @@ public abstract class CoreApplication implements Application {
             glfwPollEvents();
 
             while(accumulator >= FRAMETIME){
-                logicEvent(FRAMETIME);
+
 
                 accumulator -= FRAMETIME;
             }
-
+            logicEvent(FRAMETIME);
             drawEvent(delta);
 
             long timeEnd = System.currentTimeMillis();
