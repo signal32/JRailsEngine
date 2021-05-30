@@ -76,7 +76,7 @@ public class Rails extends CoreApplication{
     float speedx = 0;
     float speedy = 0;
     float speedz = 0;
-    boolean debug = false;
+    boolean debug = true;
 
     Camera cameraObject;
 
@@ -90,7 +90,7 @@ public class Rails extends CoreApplication{
     public static void main(String[] args) {
 
         //Compile shaders
-        ShaderCompiler.compile("dev/shaders/src");
+        //ShaderCompiler.compile("dev/shaders/src", "spirv");
 
 
         Application.Config config = new Config();
@@ -99,21 +99,39 @@ public class Rails extends CoreApplication{
         config.title = "Rails";
         config.renderer = "vulkan";
 
-        try {
-            Rails rails = new Rails();
-            rails.start(config);
-            rails.shutdown();
-        }
-        catch (Exception e){
-            System.out.println(e.getMessage());
-        }
+
+        Rails rails = new Rails();
+        rails.start(config);
+        rails.shutdown();
+
     }
 
+    boolean firstMouse = true;
+    double lastX;
+    double lastY;
+    void mouseCallback(long window, double x, double y){
+        if (firstMouse) {
+            lastX = x;
+            lastY = y;
+            firstMouse = false;
+        }
+        float xoff = (float) (x -lastX);
+        float yoff = (float) (y-lastY);
 
+        lastY = y;
+        lastX = x;
+
+        System.out.println(String.format("X %f Y %f",x,y));
+        cameraObject.processMouseMove(-xoff,yoff, true);
+
+    }
+
+    void resize(long window, int width, int height){
+        bgfx_reset(width,height,BGFX_RESET_VSYNC,0);
+    }
 
     @Override
     public void drawEvent(double delta) {
-
         //bgfx_touch(0);
         if (debug) {
 
@@ -122,7 +140,7 @@ public class Rails extends CoreApplication{
             bgfx_dbg_text_printf(80, 15, 0x1f, "lol bums");
 
             bgfx_dbg_text_printf(0, 1, 0x1f, "Rails Debug");
-            bgfx_dbg_text_printf(0, 2, 0x3f, String.format("Camera: % 7.3f[ms] X: %f Y: %f Z = %f", speedz, camera.x, camera.y, camera.z));
+            bgfx_dbg_text_printf(0, 2, 0x3f, String.format("Camera: z % 7.3f[ms] x % 7.3f[ms] y % 7.3f[ms] X: %f Y: %f Z = %f", speedz, speedx, speedy, cameraObject.position.x, cameraObject.position.y, cameraObject.position.z));
 
             bgfx_dbg_text_printf(0, 3, 0x0f, "Color can be changed with ANSI \u001b[9;me\u001b[10;ms\u001b[11;mc\u001b[12;ma\u001b[13;mp\u001b[14;me\u001b[0m code too.");
 
@@ -137,13 +155,13 @@ public class Rails extends CoreApplication{
         Vector3f cameraUp = cameraDirection.cross(cameraRight);*/
 
         // Calculate view matrix
-        BgfxUtilities.lookAt(cameraTarget, camera, view);
+        //BgfxUtilities.lookAt(cameraTarget, camera, view);
 
         // Calculate projection matrix
         BgfxUtilities.perspective(60.0f, 1920, 1080, 0.1f, 100.0f, proj);
 
         // Send matrices to bgfx
-        bgfx_set_view_transform(0, view.get4x4(viewBuf), proj.get(projBuf));
+        bgfx_set_view_transform(0, cameraObject.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
 
         long encoder = bgfx_encoder_begin(false);
         bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.01f),0).get4x4(modelBuf));
@@ -154,7 +172,7 @@ public class Rails extends CoreApplication{
         //Bind textures
         bgfx_encoder_set_texture(encoder,0,uniformTexColor,textureColor,0xffffffff);
 
-        bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
+        bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0); //TODO for openGL cull mode needs to be CW
 
         bgfx_encoder_submit(encoder, 0, program, 0, 0);
                 time+= 0.0001;
@@ -171,30 +189,43 @@ public class Rails extends CoreApplication{
         float acceleration = 0.01f;
         float cameraSpeed = 0.5f;
 
-        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_PRESS)
-            speedz+= (speedz < cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_RELEASE)
-            speedz-= (speedz > 0) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_PRESS)
-            speedz-= (speedz > -cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_RELEASE)
-            speedz+= (speedz < 0) ? acceleration : 0;
-        //speedz-= (speedz > 0) ? acceleration : 0;
+        //cameraObject.processKeyboard(Camera.CameraMovement.LEFT,0.1f);
 
-        if(glfwGetKey(this.window,GLFW_KEY_TAB) == GLFW_PRESS)
-            debug = !debug;
+        // Left - right
+        if(glfwGetKey(this.window,GLFW_KEY_A) == GLFW_PRESS)
+            speedz+= (speedz < cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_A) == GLFW_RELEASE)
+            speedz-= (speedz > 0) ? acceleration : 0;
+
+        if(glfwGetKey(this.window,GLFW_KEY_D) == GLFW_PRESS)
+            speedz-= (speedz > -cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_D) == GLFW_RELEASE)
+            speedz+= (speedz < 0) ? acceleration : 0;
+
+        // Forward - backward
+        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_PRESS)
+            speedx+= (speedx < cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_RELEASE)
+            speedx-= (speedx > 0.1) ? acceleration : 0;
+
+        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_PRESS)
+            speedx-= (speedx > -cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_RELEASE)
+            speedx+= (speedx < 0) ? acceleration : 0;
+
 
         if(glfwGetKey(this.window,GLFW_KEY_Q) == GLFW_PRESS){
             camera.y += cameraSpeed;
-            //cameraTarget.y += cameraSpeed;
         }
-        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_PRESS){
+        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_PRESS) {
             camera.y -= cameraSpeed;
-            //cameraTarget.y -= cameraSpeed;
         }
+
         camera.x += speedx;
         camera.z += speedz;
         camera.y += speedy;
+        cameraObject.processKeyboard(Camera.CameraMovement.RIGHT,speedz);
+        cameraObject.processKeyboard(Camera.CameraMovement.FORWARD,speedx);
     }
 
     @Override
@@ -205,17 +236,12 @@ public class Rails extends CoreApplication{
         //testMesh = new DebugCube().create();
         testMesh = new DebugCubeTex().create();
 
+        cameraObject = new Camera(new Vector3f(0.0f,0.0f,3.0f),new Vector3f(0.0f,1.0f,0.0f));
 
         try {
-            Texture texture = new Texture("tex.png","uh");
-            texture.create();
 
             uniformTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_VEC4,0);
             textureColor = BgfxUtilities.loadTexture("tex2.dds");
-
-/*            testMesh = new Mesh(cubeVertices, cubeIndices, texture)
-                    .setVertexLayout(Mesh.VertexType.POSITION, Mesh.VertexType.COLOR)
-                    .create();*/
 
             short vs = BgfxUtilities.loadShader("vs_rBasicUnlit");
             short fs = BgfxUtilities.loadShader("fs_rBasicUnlit");
@@ -229,5 +255,9 @@ public class Rails extends CoreApplication{
         catch (Exception e){
             throw new RuntimeException("Could not load a thing...");
         }
+
+        glfwSetCursorPosCallback(window, this::mouseCallback);
+
+        glfwSetFramebufferSizeCallback(window, this::resize);
     }
 }

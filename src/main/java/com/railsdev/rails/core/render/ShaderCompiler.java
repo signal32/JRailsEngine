@@ -15,7 +15,7 @@ public class ShaderCompiler {
     private static final String SHADERC_DIR = SHADERS + "src/";
     private static final String OUT_DIR = SHADERS + "bin/";
 
-    public static void compile(String dir){
+    public static void compile(String dir, String profile){
         System.out.println("Compiling shaders:");
 
         try {
@@ -23,7 +23,7 @@ public class ShaderCompiler {
             path = path.filter(Files::isRegularFile);
             path = path.filter(str -> str.toString().endsWith(".sc"));
             path = path.filter(str -> !str.toString().endsWith("def.sc"));
-            path.forEach(str -> compile(str,OUT_DIR, "spirv"));
+            path.forEach(str -> compile(str,OUT_DIR, profile));
         }
         catch (Exception e){
             System.out.println("An error occurred converting shaders.");
@@ -37,6 +37,7 @@ public class ShaderCompiler {
         String name = shader.getFileName().toString();
         String type = shader.getFileName().toString().startsWith("vs_")? "vertex" : "fragment";
         String platform = profile.equals("spirv")? "linux" : "windows";
+        boolean glsl = profile.equals("glsl");
 
         try{
             //var process
@@ -46,7 +47,7 @@ public class ShaderCompiler {
                     "-o",OUT_DIR + profile + "/" + shader.getFileName().toString().substring(0,name.lastIndexOf('.')) + ".bin",
                     "--type", type,
                     "--platform", platform,
-                    "--profile", profile,
+                    (glsl)?"":"--profile", (glsl)? "" : profile,
                     "-i", BGFX_SRC,
                     "-i", BGFX_COMMON + "shaderlib.sh",
                     "-i", BGFX_COMMON + "common.sh");

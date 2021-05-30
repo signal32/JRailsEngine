@@ -15,7 +15,7 @@ public class Camera {
     };
 
     // Attributes
-    Vector3f position;
+    public Vector3f position;
     Vector3f front;
     Vector3f up;
     Vector3f right;
@@ -35,7 +35,15 @@ public class Camera {
     public Camera(Vector3f position, Vector3f up){
         this.position = position;
         this.worldUp = up;
+        this.front = new Vector3f();
+        this.up = new Vector3f();
+        this.right = new Vector3f();
+        this.at = new Vector3f();
         updateVectors();
+    }
+
+    public Matrix4x3f getViewMatrix(Matrix4x3f dest){
+        return dest.setLookAtLH(position,at,up);
     }
 
     public void processKeyboard(CameraMovement movement, float detaTime){
@@ -50,6 +58,7 @@ public class Camera {
             case RIGHT:
                 position.add(right.mul(velocity));
         }
+        updateVectors();
     }
 
     public void processMouseMove(float xoffset, float yoffset, boolean constrainPitch){
@@ -77,24 +86,18 @@ public class Camera {
 
     private void updateVectors(){
         // Calculate new front vector
-        Vector3f front = new Vector3f();
-        front.x = cos(toRadians(yaw) * cos(toRadians(pitch)));
+        //front.zero();
+        front.x = cos(toRadians(yaw)) * cos(toRadians(pitch));
         front.y = sin(toRadians(pitch));
-        front.z = sin(toRadians(yaw) * cos(toRadians(pitch)));
+        front.z = sin(toRadians(yaw)) * cos(toRadians(pitch));
         front.normalize();
 
-        // Re-calculate right and up vectors
-        Vector3f frontCopy = new Vector3f(front); //TODO needs some work to reduce heap allocation
-        right = front.cross(worldUp).normalize();
-        up = right.cross(frontCopy).normalize();
+        // Re-calculate right and up vectors (looks slightly convoluted but avoids using 'new')
+        right.set(front);
+        right.cross(worldUp).normalize();
+        up.set(right);
+        up = up.cross(front).normalize();
+        at.set(position);
+        at.add(front);
     }
-
-    public void getViewMatrix(Matrix4x3f dest){
-        dest.setLookAtLH(position,at,up);
-//TODO this wont work because position will be overwrittern
-
-    }
-
-
-
 }
