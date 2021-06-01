@@ -20,8 +20,8 @@ SAMPLER2D(s_stencil, 6);        // IDs
 uniform vec4 lightPositions[4];
 uniform vec4 lightColors[4];
 
-//uniform vec3 cameraPos;
-const vec3 cameraPos = vec3(1.0);
+uniform vec4 cameraPos;
+//const vec3 cameraPos = vec3(0.0,0.0,3.0);
 
 const float pi = 3.14159265359;
 
@@ -123,14 +123,14 @@ void main()
         //test = numerator;
 
         // add to outgoing irradiance (Lo)
-        float NdotL = clamp(dot(N, L), 0.1,1.0);
+        float NdotL = clamp(dot(N, L), 0.0,1.0);
         //float NdotL = dot(N, L);
         Lo += (kD * albedo / pi + specular) * radiance * NdotL;
         //test = vec3(Lo);
     }
 
     // Basic ambient factor
-    vec3 ambient = mul(vec3(0.03), albedo);//*ao;
+    vec3 ambient = mul(vec3(0.03), albedo);// *ao;
     vec3 colourOut = ambient + Lo;
 
     // Gamma correction
@@ -141,6 +141,7 @@ void main()
 	gl_FragColor = vec4(colourOut,1.0);
 	//gl_FragColor = vec4(albedo,0.0,0.0,1.0);
 	//gl_FragColor = lightColors[0];
+	//gl_FragColor = cameraPos;
 }
 
 

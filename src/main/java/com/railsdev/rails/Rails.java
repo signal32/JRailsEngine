@@ -68,7 +68,7 @@ public class Rails extends CoreApplication{
     boolean debug = true;
 
     private static final float[][] lightRgbInnerR = {
-            { 150.0f, 150.0f, 150.0f },
+            { 255.0f, 255.0f, 255.0f },
             { 150.0f, 150.0f, 150.0f },
             { 150.0f, 150.0f, 150.0f },
             { 150.0f, 150.0f, 150.0f },
@@ -165,7 +165,7 @@ public class Rails extends CoreApplication{
 
             bgfx_dbg_text_printf(0, 0, 0x1f, "Rails Debug");
             bgfx_dbg_text_printf(0, 1, 0x3f, String.format("Camera: z % 7.3f[ms] x % 7.3f[ms] y % 7.3f[ms] X: %f Y: %f Z = %f", speedz, speedx, speedy, cameraObject.position.x, cameraObject.position.y, cameraObject.position.z));
-
+            bgfx_dbg_text_printf(0, 2, 0x3f, String.format("Time: % 7.3f", time));
             bgfx_dbg_text_printf(0, 3, 0x0f, "Color can be changed with ANSI \u001b[9;me\u001b[10;ms\u001b[11;mc\u001b[12;ma\u001b[13;mp\u001b[14;me\u001b[0m code too.");
             bgfx_dbg_text_printf(100, 0, 0x0f, "\u001b[;0m    \u001b[;1m    \u001b[; 2m    \u001b[; 3m    \u001b[; 4m    \u001b[; 5m    \u001b[; 6m    \u001b[; 7m    \u001b[0m");
             bgfx_dbg_text_printf(100, 1, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
@@ -184,9 +184,13 @@ public class Rails extends CoreApplication{
         bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.0001f),0).get4x4(modelBuf));
 
         cameraPosBuffer.clear();
-        float[] pos = {1.0f,3.0f,1.0f};
-        cameraPosBuffer.put(pos);
-
+        //float[] pos = {0.0f + time*time,0.0f + time,0.0f + time};
+        float[] pos = {cameraObject.position.x,cameraObject.position.y,cameraObject.position.z};
+        //float[] pos = {0.0f,1.0f,0.0f};
+        for (float f : pos){
+            cameraPosBuffer.put(f);
+        }
+        cameraPosBuffer.flip();
         bgfx_encoder_set_uniform(encoder,uniformCameraPos,cameraPosBuffer,1);
 
         uniformBuf.clear();
@@ -206,7 +210,7 @@ public class Rails extends CoreApplication{
         }
         uniformBuf.flip();
         bgfx_encoder_set_uniform(encoder, uniformLightColours, uniformBuf, 4);
-        bgfx_encoder_set_uniform(encoder, uniformCameraPos, uniformBuf, 1);
+        //bgfx_encoder_set_uniform(encoder, uniformCameraPos, uniformBuf, 1);
 
 
         bgfx_encoder_set_vertex_buffer(encoder, 0, testMesh.vbh, 0, 8);
@@ -215,8 +219,8 @@ public class Rails extends CoreApplication{
         //Bind textures
         bgfx_encoder_set_texture(encoder,0,uniformTexColor,textureColor,0xffffffff);
         bgfx_encoder_set_texture(encoder,1,uniformTexNormal,texNormal,0xffffffff);
-        bgfx_encoder_set_texture(encoder,2,uniformTexRough,texRough,0xffffffff);
-        bgfx_encoder_set_texture(encoder,3,uniformTexMetal,texMetal,0xffffffff);
+        bgfx_encoder_set_texture(encoder,2,uniformTexRough,texMetal,0xffffffff);
+        bgfx_encoder_set_texture(encoder,3,uniformTexMetal,texRough,0xffffffff);
         bgfx_encoder_set_texture(encoder,4,uniformTexAO,texAO,0xffffffff);
 
         bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0); //TODO for openGL cull mode needs to be CW
@@ -234,7 +238,7 @@ public class Rails extends CoreApplication{
     @Override
     public void logicEvent(double delta) {
         float acceleration = 0.01f;
-        float cameraSpeed = 0.5f;
+        float cameraSpeed = 0.2f;
 
         // Left - right
         if(glfwGetKey(this.window,GLFW_KEY_A) == GLFW_PRESS)
@@ -269,10 +273,16 @@ public class Rails extends CoreApplication{
         if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_RELEASE)
             speedy+= (speedy < 0) ? acceleration : 0;
 
-        if(glfwGetKey(this.window,GLFW_KEY_Z) == GLFW_PRESS) {
+        if(glfwGetKey(this.window,GLFW_KEY_TAB) == GLFW_PRESS) {
             speedz = 0;
             speedx = 0;
         }
+        if(glfwGetKey(this.window,GLFW_KEY_R) == GLFW_PRESS) {
+            cameraObject.position.x = 0;
+            cameraObject.position.y = 0;
+            cameraObject.position.z = 0;
+        }
+
 
         cameraObject.processKeyboard(Camera.CameraMovement.RIGHT,speedz);
         cameraObject.processKeyboard(Camera.CameraMovement.FORWARD,speedx);
@@ -300,11 +310,11 @@ public class Rails extends CoreApplication{
             uniformTexRough = bgfx_create_uniform("s_roughness", BGFX_UNIFORM_TYPE_VEC4,1);
             uniformTexAO = bgfx_create_uniform("s_ao", BGFX_UNIFORM_TYPE_VEC4,1);
 
-            textureColor = BgfxUtilities.loadTexture("color.dds");
-            texNormal = BgfxUtilities.loadTexture("normal.dds");
-            texMetal = BgfxUtilities.loadTexture("metal.dds");
-            texRough = BgfxUtilities.loadTexture("metal.dds");
-            uniformTexAO = BgfxUtilities.loadTexture("ao.dds");
+            textureColor = BgfxUtilities.loadTexture("metal/color.dds");
+            texNormal = BgfxUtilities.loadTexture("metal/normal.dds");
+            texMetal = BgfxUtilities.loadTexture("metal/metal.dds");
+            texRough = BgfxUtilities.loadTexture("metal/rough.dds"); //Looks much worse with rough texture...?
+            uniformTexAO = BgfxUtilities.loadTexture("metal/ao.dds");
 
             short vs = BgfxUtilities.loadShader("vs_rBRDF");
             short fs = BgfxUtilities.loadShader("fs_rBRDF");
@@ -315,7 +325,7 @@ public class Rails extends CoreApplication{
             projBuf = MemoryUtil.memAllocFloat(16);
             modelBuf = MemoryUtil.memAllocFloat(16);
             uniformBuf = MemoryUtil.memAlloc(16 * 4);
-            cameraPosBuffer = MemoryUtil.memAllocFloat(16);
+            cameraPosBuffer = MemoryUtil.memAllocFloat(4);
         }
         catch (Exception e){
             throw new RuntimeException(e.getMessage());
