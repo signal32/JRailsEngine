@@ -1,5 +1,9 @@
 package com.railsdev.rails.core.render;
 
+import com.railsdev.rails.Rails;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.bgfx.*;
 import org.lwjgl.system.*;
 import static org.lwjgl.bgfx.BGFX.*;
@@ -13,6 +17,8 @@ public class Renderer {
          public int height = 600;
          public String type = "vulkan";
     }
+
+    private static Logger LOGGER = LogManager.getLogger(Renderer.class);
 
     protected int renderer = BGFX_RENDERER_TYPE_COUNT;
 
@@ -40,7 +46,7 @@ public class Renderer {
         renderer = bgfx_get_renderer_type();
         BgfxUtilities.configure(renderer);
 
-        System.out.println("Using renderer: " + bgfx_get_renderer_name(renderer));
+        LOGGER.info("Renderer started. Using {} subsystem", () -> bgfx_get_renderer_name(renderer));
 
         bgfx_set_debug(BGFX_DEBUG_TEXT);
         bgfx_set_view_clear(0,BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,0x303030ff, 1.0f,0);

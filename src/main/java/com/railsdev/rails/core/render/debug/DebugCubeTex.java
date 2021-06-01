@@ -2,6 +2,9 @@ package com.railsdev.rails.core.render.debug;
 
 import com.railsdev.rails.core.render.Mesh;
 
+/**
+ * A debug cube Mesh with random vertex colours.
+ */
 public class DebugCubeTex extends Mesh {
 
     private static final Object[][] cubeVertices = {

@@ -1,5 +1,9 @@
 package com.railsdev.rails.core.render;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,6 +11,9 @@ import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 public class ShaderCompiler {
+
+    private static final Logger LOGGER = LogManager.getLogger(ShaderCompiler.class);
+
     //private static final String OUT_DIR = "dev/shaders/bin/";
     //private static final String SHADERC_DIR = "dev/shaders/src/";
     private static final String SHADERS = "dev/shaders/";
@@ -16,7 +23,7 @@ public class ShaderCompiler {
     private static final String OUT_DIR = SHADERS + "bin/";
 
     public static void compile(String dir, String profile){
-        System.out.println("Compiling shaders:");
+        LOGGER.info("Compiling shaders for {}", profile);
 
         try {
             Stream<Path> path = Files.walk(Paths.get(dir));
@@ -63,10 +70,10 @@ public class ShaderCompiler {
             String line;
 
             if (br.readLine() == null){
-                System.out.println("Compiled " + shader.getFileName());
+                LOGGER.info("Compiled {}", shader::getFileName);
             }
             else {
-                System.out.println("Compilation error: " + shader.getFileName().toString());
+                LOGGER.error("Shader compiler failed: {}", shader::getFileName);
                 while ((line = br.readLine()) != null) {
                     System.out.println(line);
                 }

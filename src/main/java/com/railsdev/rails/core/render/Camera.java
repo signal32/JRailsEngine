@@ -50,13 +50,13 @@ public class Camera {
         float velocity = movementSpeed * detaTime;
         switch (movement){
             case FORWARD:
-                position.add(front.mul(velocity));
+                position.add(front.mul(velocity)); break;
             case BACKWARD:
-                position.sub(front.mul(velocity));
+                position.sub(front.mul(velocity)); break;
             case LEFT:
-                position.sub(right.mul(velocity));
+                position.sub(right.mul(velocity)); break;
             case RIGHT:
-                position.add(right.mul(velocity));
+                position.add(right.mul(velocity)); break;
         }
         updateVectors();
     }

@@ -1,70 +1,59 @@
 package com.railsdev.rails;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
 import com.railsdev.rails.core.context.Application;
 import com.railsdev.rails.core.context.CoreApplication;
 import com.railsdev.rails.core.render.*;
-import com.railsdev.rails.core.render.debug.DebugCube;
 import com.railsdev.rails.core.render.debug.DebugCubeTex;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.joml.Math;
 import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 import org.lwjgl.bgfx.BGFXReleaseFunctionCallback;
-import org.lwjgl.bgfx.BGFXVertexLayout;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import static org.lwjgl.bgfx.BGFX.*;
-import static org.lwjgl.system.MemoryUtil.NULL;
 import static org.lwjgl.system.MemoryUtil.nmemFree;
-
 import static org.lwjgl.glfw.GLFW.*;
 
 
 public class Rails extends CoreApplication{
 
-    //begin testing data
-    private static final Object[][] cubeVertices = {
-            { -1.0f, 1.0f, 1.0f, 0xff000000 },
-            { 1.0f, 1.0f, 1.0f, 0xff0000ff },
-            { -1.0f, -1.0f, 1.0f, 0xff00ff00 },
-            { 1.0f, -1.0f, 1.0f, 0xff00ffff },
-            { -1.0f, 1.0f, -1.0f, 0xffff0000 },
-            { 1.0f, 1.0f, -1.0f, 0xffff00ff },
-            { -1.0f, -1.0f, -1.0f, 0xffffff00 },
-            { 1.0f, -1.0f, -1.0f, 0xffffffff }
-    };
+    private static Logger LOGGER = LogManager.getLogger(Rails.class);
 
-    private static final int[] cubeIndices = {
-            0, 1, 2, // 0
-            1, 3, 2,
-            4, 6, 5, // 2
-            5, 6, 7,
-            0, 2, 4, // 4
-            4, 2, 6,
-            1, 5, 3, // 6
-            5, 7, 3,
-            0, 4, 1, // 8
-            4, 5, 1,
-            2, 3, 6, // 10
-            6, 3, 7
-    };
-
-    private BGFXVertexLayout layout;
-    private ByteBuffer vertices;
-    private short vbh;
-    private ByteBuffer indices;
-    private short ibh;
     private short program;
 
     private short uniformTexColor;
     private short uniformTexNormal;
-
-    private Vector3f camera = new Vector3f(0.0f,0.0f,3.0f);
-    private Vector3f cameraTarget = new Vector3f(0.0f,0.0f,0.0f);
+    private short uniformTexMetal;
+    private short uniformTexRough;
+    private short uniformTexAO;
 
     private short textureColor;
+    private short texNormal;
+    private short texMetal;
+    private short texRough;
+    private short texAO;
+
+    private short uniformLightPositions;
+    private short uniformLightColours;
+    private ByteBuffer uniformBuf;
+
+    private short uniformCameraPos;
+    private FloatBuffer cameraPosBuffer;
+
+
+
     private Matrix4x3f view = new Matrix4x3f();     // View transformation matrix -- Transformation of vertices relative to camera space
     private FloatBuffer viewBuf;
     private Matrix4f proj = new Matrix4f();         // Projection transformation matrix (perpective) -- Transformation to clip space
@@ -78,6 +67,19 @@ public class Rails extends CoreApplication{
     float speedz = 0;
     boolean debug = true;
 
+    private static final float[][] lightRgbInnerR = {
+            { 150.0f, 150.0f, 150.0f },
+            { 150.0f, 150.0f, 150.0f },
+            { 150.0f, 150.0f, 150.0f },
+            { 150.0f, 150.0f, 150.0f },
+    };
+    private static final float[][] lightPos = {
+            { 0.0f, 0.0f, 10.0f },
+            { 0.0f, 0.0f, 30.0f },
+            { 0.0f, 0.0f, 10.0f },
+            { 0.0f, 0.0f, 10.0f },
+    };
+
     Camera cameraObject;
 
     Mesh testMesh;
@@ -86,12 +88,31 @@ public class Rails extends CoreApplication{
 
     // end test data
 
+    @Parameter(names = {"-log"})    private String log              ="debug";
+    @Parameter(names = {"-render"}) private String renderString     ="vk";
+
 
     public static void main(String[] args) {
 
-        //Compile shaders
-        //ShaderCompiler.compile("dev/shaders/src", "spirv");
 
+
+        String[] argv = {"-log","warn","-render","vk"};
+        JCommander.newBuilder()
+                .addObject(new Rails())
+                .build()
+                .parse(args);
+
+        LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+        Configuration logConfig = ctx.getConfiguration();
+        LoggerConfig loggerConfig = logConfig.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+        loggerConfig.setLevel(Level.ALL);
+        ctx.updateLoggers();  // This causes all Loggers to refetch information from their LoggerConfig.
+
+        //Compile shaders
+        ShaderCompiler.compile("dev/shaders/src", "spirv");
+
+        LOGGER.info("Hello from Rails!");
+        LOGGER.info("Logging Level: {}", loggerConfig.getLevel());
 
         Application.Config config = new Config();
         config.width = 1920;
@@ -115,15 +136,20 @@ public class Rails extends CoreApplication{
             lastY = y;
             firstMouse = false;
         }
+
         float xoff = (float) (x -lastX);
         float yoff = (float) (y-lastY);
 
         lastY = y;
         lastX = x;
 
-        System.out.println(String.format("X %f Y %f",x,y));
-        cameraObject.processMouseMove(-xoff,yoff, true);
-
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS){
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+            cameraObject.processMouseMove(-xoff,yoff, true);
+        }
+        else{
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
     }
 
     void resize(long window, int width, int height){
@@ -137,22 +163,13 @@ public class Rails extends CoreApplication{
 
             bgfx_dbg_text_clear(0, false);
 
-            bgfx_dbg_text_printf(80, 15, 0x1f, "lol bums");
-
-            bgfx_dbg_text_printf(0, 1, 0x1f, "Rails Debug");
-            bgfx_dbg_text_printf(0, 2, 0x3f, String.format("Camera: z % 7.3f[ms] x % 7.3f[ms] y % 7.3f[ms] X: %f Y: %f Z = %f", speedz, speedx, speedy, cameraObject.position.x, cameraObject.position.y, cameraObject.position.z));
+            bgfx_dbg_text_printf(0, 0, 0x1f, "Rails Debug");
+            bgfx_dbg_text_printf(0, 1, 0x3f, String.format("Camera: z % 7.3f[ms] x % 7.3f[ms] y % 7.3f[ms] X: %f Y: %f Z = %f", speedz, speedx, speedy, cameraObject.position.x, cameraObject.position.y, cameraObject.position.z));
 
             bgfx_dbg_text_printf(0, 3, 0x0f, "Color can be changed with ANSI \u001b[9;me\u001b[10;ms\u001b[11;mc\u001b[12;ma\u001b[13;mp\u001b[14;me\u001b[0m code too.");
-
-            bgfx_dbg_text_printf(80, 4, 0x0f, "\u001b[;0m    \u001b[;1m    \u001b[; 2m    \u001b[; 3m    \u001b[; 4m    \u001b[; 5m    \u001b[; 6m    \u001b[; 7m    \u001b[0m");
-            bgfx_dbg_text_printf(80, 10, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
+            bgfx_dbg_text_printf(100, 0, 0x0f, "\u001b[;0m    \u001b[;1m    \u001b[; 2m    \u001b[; 3m    \u001b[; 4m    \u001b[; 5m    \u001b[; 6m    \u001b[; 7m    \u001b[0m");
+            bgfx_dbg_text_printf(100, 1, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
         }
-/*        Vector3f camera = new Vector3f(0.0f,0.0f,3.0f);
-        Vector3f cameraTarget = new Vector3f(0.0f,0.0f,0.0f);
-        Vector3f cameraDirection = camera.sub(cameraTarget).normalize();
-        Vector3f up = new Vector3f(0.0f,1.0f,0.0f);
-        Vector3f cameraRight = up.cross(cameraDirection).normalize();
-        Vector3f cameraUp = cameraDirection.cross(cameraRight);*/
 
         // Calculate view matrix
         //BgfxUtilities.lookAt(cameraTarget, camera, view);
@@ -164,13 +181,43 @@ public class Rails extends CoreApplication{
         bgfx_set_view_transform(0, cameraObject.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
 
         long encoder = bgfx_encoder_begin(false);
-        bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.01f),0).get4x4(modelBuf));
+        bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.0001f),0).get4x4(modelBuf));
+
+        cameraPosBuffer.clear();
+        float[] pos = {1.0f,3.0f,1.0f};
+        cameraPosBuffer.put(pos);
+
+        bgfx_encoder_set_uniform(encoder,uniformCameraPos,cameraPosBuffer,1);
+
+        uniformBuf.clear();
+        for (float[] ll : lightPos) {
+            for (float l : ll) {
+                uniformBuf.putFloat(l);
+            }
+        }
+        uniformBuf.flip();
+        bgfx_encoder_set_uniform(encoder, uniformLightPositions, uniformBuf, 4);
+
+        uniformBuf.clear();
+        for (float[] ll : lightRgbInnerR) {
+            for (float l : ll) {
+                uniformBuf.putFloat(l);
+            }
+        }
+        uniformBuf.flip();
+        bgfx_encoder_set_uniform(encoder, uniformLightColours, uniformBuf, 4);
+        bgfx_encoder_set_uniform(encoder, uniformCameraPos, uniformBuf, 1);
+
 
         bgfx_encoder_set_vertex_buffer(encoder, 0, testMesh.vbh, 0, 8);
         bgfx_encoder_set_index_buffer(encoder, testMesh.ibh, 0, 36);
 
         //Bind textures
         bgfx_encoder_set_texture(encoder,0,uniformTexColor,textureColor,0xffffffff);
+        bgfx_encoder_set_texture(encoder,1,uniformTexNormal,texNormal,0xffffffff);
+        bgfx_encoder_set_texture(encoder,2,uniformTexRough,texRough,0xffffffff);
+        bgfx_encoder_set_texture(encoder,3,uniformTexMetal,texMetal,0xffffffff);
+        bgfx_encoder_set_texture(encoder,4,uniformTexAO,texAO,0xffffffff);
 
         bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0); //TODO for openGL cull mode needs to be CW
 
@@ -189,41 +236,44 @@ public class Rails extends CoreApplication{
         float acceleration = 0.01f;
         float cameraSpeed = 0.5f;
 
-        //cameraObject.processKeyboard(Camera.CameraMovement.LEFT,0.1f);
-
         // Left - right
         if(glfwGetKey(this.window,GLFW_KEY_A) == GLFW_PRESS)
             speedz+= (speedz < cameraSpeed) ? acceleration : 0;
         if(glfwGetKey(this.window,GLFW_KEY_A) == GLFW_RELEASE)
-            speedz-= (speedz > 0) ? acceleration : 0;
+            speedz-= (speedz-acceleration > 0) ? acceleration : 0;
 
         if(glfwGetKey(this.window,GLFW_KEY_D) == GLFW_PRESS)
             speedz-= (speedz > -cameraSpeed) ? acceleration : 0;
         if(glfwGetKey(this.window,GLFW_KEY_D) == GLFW_RELEASE)
-            speedz+= (speedz < 0) ? acceleration : 0;
+            speedz+= (speedz+acceleration < 0) ? acceleration : 0;
 
         // Forward - backward
         if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_PRESS)
             speedx+= (speedx < cameraSpeed) ? acceleration : 0;
         if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_RELEASE)
-            speedx-= (speedx > 0.1) ? acceleration : 0;
+            speedx-= (speedx > 0) ? acceleration : 0;
 
         if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_PRESS)
             speedx-= (speedx > -cameraSpeed) ? acceleration : 0;
         if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_RELEASE)
-            speedx+= (speedx < 0) ? acceleration : 0;
+            speedx+= (speedx+acceleration < 0) ? acceleration : 0;
 
+        // up - down
+        if(glfwGetKey(this.window,GLFW_KEY_Q) == GLFW_PRESS)
+            speedy+= (speedy < cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_Q) == GLFW_RELEASE)
+            speedy-= (speedy > 0.1) ? acceleration : 0;
 
-        if(glfwGetKey(this.window,GLFW_KEY_Q) == GLFW_PRESS){
-            camera.y += cameraSpeed;
+        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_PRESS)
+            speedy-= (speedy > -cameraSpeed) ? acceleration : 0;
+        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_RELEASE)
+            speedy+= (speedy < 0) ? acceleration : 0;
+
+        if(glfwGetKey(this.window,GLFW_KEY_Z) == GLFW_PRESS) {
+            speedz = 0;
+            speedx = 0;
         }
-        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_PRESS) {
-            camera.y -= cameraSpeed;
-        }
 
-        camera.x += speedx;
-        camera.z += speedz;
-        camera.y += speedy;
         cameraObject.processKeyboard(Camera.CameraMovement.RIGHT,speedz);
         cameraObject.processKeyboard(Camera.CameraMovement.FORWARD,speedx);
     }
@@ -240,20 +290,35 @@ public class Rails extends CoreApplication{
 
         try {
 
-            uniformTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_VEC4,0);
-            textureColor = BgfxUtilities.loadTexture("tex2.dds");
+            uniformLightColours = bgfx_create_uniform("lightColors",BGFX_UNIFORM_TYPE_VEC4,4);
+            uniformLightPositions = bgfx_create_uniform("lightPositions",BGFX_UNIFORM_TYPE_VEC4,4);
+            uniformCameraPos = bgfx_create_uniform("cameraPos",BGFX_UNIFORM_TYPE_VEC4,1);
 
-            short vs = BgfxUtilities.loadShader("vs_rBasicUnlit");
-            short fs = BgfxUtilities.loadShader("fs_rBasicUnlit");
+            uniformTexColor = bgfx_create_uniform("s_albedo", BGFX_UNIFORM_TYPE_VEC4,1);
+            uniformTexNormal = bgfx_create_uniform("s_normal", BGFX_UNIFORM_TYPE_VEC4,1);
+            uniformTexMetal = bgfx_create_uniform("s_metallic", BGFX_UNIFORM_TYPE_VEC4,1);
+            uniformTexRough = bgfx_create_uniform("s_roughness", BGFX_UNIFORM_TYPE_VEC4,1);
+            uniformTexAO = bgfx_create_uniform("s_ao", BGFX_UNIFORM_TYPE_VEC4,1);
+
+            textureColor = BgfxUtilities.loadTexture("color.dds");
+            texNormal = BgfxUtilities.loadTexture("normal.dds");
+            texMetal = BgfxUtilities.loadTexture("metal.dds");
+            texRough = BgfxUtilities.loadTexture("metal.dds");
+            uniformTexAO = BgfxUtilities.loadTexture("ao.dds");
+
+            short vs = BgfxUtilities.loadShader("vs_rBRDF");
+            short fs = BgfxUtilities.loadShader("fs_rBRDF");
 
             program = bgfx_create_program(vs, fs, true);
 
             viewBuf = MemoryUtil.memAllocFloat(16);
             projBuf = MemoryUtil.memAllocFloat(16);
             modelBuf = MemoryUtil.memAllocFloat(16);
+            uniformBuf = MemoryUtil.memAlloc(16 * 4);
+            cameraPosBuffer = MemoryUtil.memAllocFloat(16);
         }
         catch (Exception e){
-            throw new RuntimeException("Could not load a thing...");
+            throw new RuntimeException(e.getMessage());
         }
 
         glfwSetCursorPosCallback(window, this::mouseCallback);
