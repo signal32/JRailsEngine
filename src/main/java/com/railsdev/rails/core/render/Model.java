@@ -3,6 +3,7 @@ package com.railsdev.rails.core.render;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.*;
 
+import java.io.IOException;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.assimp.Assimp.*;
@@ -15,7 +16,7 @@ public class Model {
         this.meshes = meshes;
     }
 
-    public static Model fromFile(String path){
+    public static Model fromFile(String path) throws IOException {
         AIScene scene = aiImportFile(path,aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_FixInfacingNormals);
 
         if (scene == null || scene.mRootNode() == null){
@@ -29,7 +30,7 @@ public class Model {
         return new Model(meshes);
     }
 
-    public static Mesh[] processNode(AINode node, AIScene scene, Mesh[] meshes, int meshPos){
+    public static Mesh[] processNode(AINode node, AIScene scene, Mesh[] meshes, int meshPos) throws IOException {
 
         // Load this nodes meshes
         int numMeshes = node.mNumMeshes();
@@ -52,7 +53,7 @@ public class Model {
         return meshes;
     }
 
-    public static Mesh processMesh(AIMesh mesh, AIScene scene){
+    public static Mesh processMesh(AIMesh mesh, AIScene scene) throws IOException {
         int vertexCount = mesh.mNumVertices();
         int faceCount = mesh.mNumFaces();
 

@@ -1,15 +1,18 @@
 package com.railsdev.rails.core.render.shaders;
 
 import com.railsdev.rails.core.render.BgfxUtilities;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 
 import static org.lwjgl.bgfx.BGFX.*;
 
 public abstract class VertexFragmentShader implements Shader, Serializable {
 
-    protected static final int MAX_UNIFORMS = 5;
+    private static Logger LOGGER = LogManager.getLogger(VertexFragmentShader.class);
 
     protected transient short programID;
     protected final String vs;
@@ -27,7 +30,13 @@ public abstract class VertexFragmentShader implements Shader, Serializable {
         short vsID = BgfxUtilities.loadShader(vs);
         short fsID = BgfxUtilities.loadShader(fs);
 
+        // callback to user to setup the uniforms required.
+        setUniforms();
+
         programID = bgfx_create_program(vsID,fsID,true);
+
+        LOGGER.info("Created shader ID={} VS={} FS={}",programID,vsID,fsID);
+
         return this;
     }
 
@@ -37,20 +46,23 @@ public abstract class VertexFragmentShader implements Shader, Serializable {
     }
 
     @Override
-    public Shader use(long encoderID) {
-
-        return null;
-    }
-
-    @Override
     public short id() {
         return programID;
     }
 
     @Override
     public void destroy() {
+        onDestroy();
+        // Destroy the program - shader handles are already destroyed following program creation.
+        bgfx_destroy_program(programID);
 
+        // Destroy all uniforms
+        for (var id : uniforms){
+            bgfx_destroy_uniform(id);
+        }
+        LOGGER.info("Destroyed shader ID={}",programID);
     }
 
-    abstract Shader setUniforms();
+    abstract void setUniforms();
+    protected void onDestroy(){}
 }

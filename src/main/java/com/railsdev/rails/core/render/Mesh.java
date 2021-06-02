@@ -4,6 +4,7 @@ import com.railsdev.rails.core.render.shaders.Shader;
 import org.lwjgl.bgfx.BGFXVertexLayout;
 import org.lwjgl.system.MemoryUtil;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.bgfx.BGFX.*;
@@ -80,7 +81,7 @@ public class Mesh {
         return this;
     }
 
-    public Mesh create(){
+    public Mesh create() throws IOException {
         verticesBuffer = MemoryUtil.memAlloc(vertices.length * (vertices[0].length * 4)); // Crappy - Each vertex attribute element is allocated 4 bytes, even if it is smaller (or bigger)
         vbh = BgfxUtilities.createVertexBuffer(verticesBuffer, layout, vertices);
 
@@ -111,6 +112,6 @@ public class Mesh {
         bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0);
         bgfx_encoder_submit(encoder, 0, shader.id(), 0, 0);
 
-        bgfx_encoder_discard(encoder, BGFX_DISCARD_VERTEX_STREAMS | BGFX_DISCARD_INDEX_BUFFER | BGFX_DISCARD_BINDINGS);
+        //bgfx_encoder_discard(encoder, BGFX_DISCARD_VERTEX_STREAMS | BGFX_DISCARD_INDEX_BUFFER | BGFX_DISCARD_BINDINGS);
     }
 }

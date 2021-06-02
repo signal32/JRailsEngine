@@ -6,6 +6,8 @@ import com.railsdev.rails.core.context.Application;
 import com.railsdev.rails.core.context.CoreApplication;
 import com.railsdev.rails.core.render.*;
 import com.railsdev.rails.core.render.debug.DebugCubeTex;
+import com.railsdev.rails.core.render.shaders.PhysicallyBasedShader;
+import com.railsdev.rails.core.render.shaders.Shader;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -68,8 +70,8 @@ public class Rails extends CoreApplication{
     boolean debug = true;
 
     private static final float[][] lightRgbInnerR = {
-            { 255.0f, 150.0f, 255.0f },
-            { 150.0f, 150.0f, 150.0f },
+            { 150.0f, 150.0f, 255.0f },
+            { 0.0f, 0.0f, 150.0f },
             { 150.0f, 150.0f, 150.0f },
             { 150.0f, 150.0f, 150.0f },
     };
@@ -83,6 +85,7 @@ public class Rails extends CoreApplication{
     Camera cameraObject;
 
     Mesh testMesh;
+    Shader testShader;
 
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
@@ -124,7 +127,6 @@ public class Rails extends CoreApplication{
         Rails rails = new Rails();
         rails.start(config);
         rails.shutdown();
-
     }
 
     boolean firstMouse = true;
@@ -213,20 +215,11 @@ public class Rails extends CoreApplication{
         //bgfx_encoder_set_uniform(encoder, uniformCameraPos, uniformBuf, 1);
 
 
-        bgfx_encoder_set_vertex_buffer(encoder, 0, testMesh.vbh, 0, 8);
-        bgfx_encoder_set_index_buffer(encoder, testMesh.ibh, 0, 36);
+        testMesh.draw(encoder,testShader);
 
-        //Bind textures
-        bgfx_encoder_set_texture(encoder,0,uniformTexColor,textureColor,0xffffffff);
-        bgfx_encoder_set_texture(encoder,1,uniformTexNormal,texNormal,0xffffffff);
-        bgfx_encoder_set_texture(encoder,2,uniformTexRough,texMetal,0xffffffff);
-        bgfx_encoder_set_texture(encoder,3,uniformTexMetal,texRough,0xffffffff);
-        bgfx_encoder_set_texture(encoder,4,uniformTexAO,texAO,0xffffffff);
 
-        bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0); //TODO for openGL cull mode needs to be CW
+        time+= 0.0001;
 
-        bgfx_encoder_submit(encoder, 0, program, 0, 0);
-                time+= 0.0001;
         bgfx_encoder_end(encoder);
 
 
@@ -290,21 +283,32 @@ public class Rails extends CoreApplication{
 
     @Override
     public void beforeStart(Application application) {
-
+        try {
         //-------
 
-        
+        String[] textures = {
+                "metal/color.dds",
+                "metal/normal.dds",
+                "metal/metal.dds",
+                "metal/rough.dds",
+                "metal/ao.dds"};
+
+        Mesh tstMesh = new DebugCubeTex(textures).create();
+        //Shader tstShader = new PhysicallyBasedShader();
 
         //-------
 
         Model testModel = Model.fromFile("dev/samples/test.obj");
         //testMesh = testModel.meshes[0];
         //testMesh = new DebugCube().create();
-        testMesh = new DebugCubeTex().create();
+
+        testMesh = new DebugCubeTex(textures).create();
+        testShader = new PhysicallyBasedShader().create();
+        //testMesh = new DebugCubeTex().create();
 
         cameraObject = new Camera(new Vector3f(0.0f,0.0f,3.0f),new Vector3f(0.0f,1.0f,0.0f));
 
-        try {
+
 
             uniformLightColours = bgfx_create_uniform("lightColors",BGFX_UNIFORM_TYPE_VEC4,4);
             uniformLightPositions = bgfx_create_uniform("lightPositions",BGFX_UNIFORM_TYPE_VEC4,4);
@@ -334,6 +338,7 @@ public class Rails extends CoreApplication{
             cameraPosBuffer = MemoryUtil.memAllocFloat(4);
         }
         catch (Exception e){
+            LOGGER.error(e.getMessage());
             throw new RuntimeException(e.getMessage());
         }
 

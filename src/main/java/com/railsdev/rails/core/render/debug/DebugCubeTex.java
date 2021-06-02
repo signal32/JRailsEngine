@@ -36,4 +36,9 @@ public class DebugCubeTex extends Mesh {
         super(cubeVertices,cubeIndices);
         setVertexLayout(VertexType.POSITION, VertexType.COLOR, VertexType.UV);
     }
+
+    public DebugCubeTex(String... textures) {
+        super(cubeVertices,cubeIndices, textures);
+        setVertexLayout(VertexType.POSITION, VertexType.COLOR, VertexType.UV);
+    }
 }
