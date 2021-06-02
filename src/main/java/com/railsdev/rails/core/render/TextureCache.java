@@ -8,7 +8,6 @@ public class TextureCache {
 
     public TextureCache() {
         cache = new HashMap<>();
-
     }
 
     public Texture getInstance(String path){

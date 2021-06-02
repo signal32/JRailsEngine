@@ -130,7 +130,7 @@ void main()
     }
 
     // Basic ambient factor
-    vec3 ambient = mul(vec3(0.03), albedo);// *ao;
+    vec3 ambient = mul(vec3(0.03), albedo)*ao;// *ao;
     vec3 colourOut = ambient + Lo;
 
     // Gamma correction

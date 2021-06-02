@@ -1,5 +1,6 @@
 package com.railsdev.rails.core.render;
 
+import com.railsdev.rails.core.render.shaders.Shader;
 import org.lwjgl.bgfx.BGFXVertexLayout;
 import org.lwjgl.system.MemoryUtil;
 
@@ -10,6 +11,8 @@ import static org.lwjgl.bgfx.BGFX.*;
 import static org.lwjgl.bgfx.BGFX.bgfx_vertex_layout_begin;
 
 public class Mesh {
+
+    public static final TextureCache textureCache = new TextureCache();
 
     public enum VertexType{
         POSITION,
@@ -24,20 +27,29 @@ public class Mesh {
 
     private Object[][] vertices;
     private int[] indices;
-    private Texture[] textures;
+    private String[] texturePaths;
+
     private ByteBuffer verticesBuffer;
     private ByteBuffer indicesBuffer;
 
     private VertexType[] vertexLayout;
-    BGFXVertexLayout layout;
+    private BGFXVertexLayout layout;
+
     public short vbh;
     public short ibh;
+    private Texture[] textures;
 
 
-    public Mesh(Object[][] vertices, int[] indices, Texture... textures) {
+    /**
+     * Create a new Mesh. Does not perform initialisation, use .setVertexLayout() and .create().
+     * @param vertices Mesh vertices
+     * @param indices Triangle indices
+     * @param texturePaths List of textures used by mesh. Order matters, and are mapped 1:1 with texture uniforms of shader when drawn.
+     */
+    public Mesh(Object[][] vertices, int[] indices, String... texturePaths) {
         this.vertices = vertices;
         this.indices = indices;
-        this.textures = textures;
+        this.texturePaths = texturePaths;
     }
 
     public Mesh setVertexLayout(VertexType... vertexLayout){
@@ -76,7 +88,29 @@ public class Mesh {
         ibh = BgfxUtilities.createIndexBuffer(indicesBuffer, indices);
 
         //Create texture in TextureCache, and get it's id (or just get it's id if created already)
-
+        textures = new Texture[texturePaths.length];
+        for (int i = 0; i < textures.length; i++){
+            textures[i] = textureCache.getInstance(texturePaths[i]);
+        }
         return this;
+    }
+
+    public void draw(long encoder, Shader shader){ // encoder already has some information from higher level (camera position, view matrix etc)
+        // set vertex and index buffers
+        bgfx_encoder_set_vertex_buffer(encoder,0,vbh,0,vertices.length);
+        bgfx_encoder_set_index_buffer(encoder,ibh,0,indices.length);
+
+        // set textures
+        for (int i = 0; i < textures.length; i++){
+            short sampler  = shader.getUniform(i);
+            short handle = textures[i].id();
+            bgfx_encoder_set_texture(encoder,i,sampler,handle, 0xffffffff);
+        }
+
+        // Submit with shader
+        bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0);
+        bgfx_encoder_submit(encoder, 0, shader.id(), 0, 0);
+
+        bgfx_encoder_discard(encoder, BGFX_DISCARD_VERTEX_STREAMS | BGFX_DISCARD_INDEX_BUFFER | BGFX_DISCARD_BINDINGS);
     }
 }

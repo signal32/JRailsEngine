@@ -68,7 +68,7 @@ public class Rails extends CoreApplication{
     boolean debug = true;
 
     private static final float[][] lightRgbInnerR = {
-            { 255.0f, 255.0f, 255.0f },
+            { 255.0f, 150.0f, 255.0f },
             { 150.0f, 150.0f, 150.0f },
             { 150.0f, 150.0f, 150.0f },
             { 150.0f, 150.0f, 150.0f },
@@ -291,6 +291,12 @@ public class Rails extends CoreApplication{
     @Override
     public void beforeStart(Application application) {
 
+        //-------
+
+        
+
+        //-------
+
         Model testModel = Model.fromFile("dev/samples/test.obj");
         //testMesh = testModel.meshes[0];
         //testMesh = new DebugCube().create();
@@ -314,7 +320,7 @@ public class Rails extends CoreApplication{
             texNormal = BgfxUtilities.loadTexture("metal/normal.dds");
             texMetal = BgfxUtilities.loadTexture("metal/metal.dds");
             texRough = BgfxUtilities.loadTexture("metal/rough.dds"); //Looks much worse with rough texture...?
-            uniformTexAO = BgfxUtilities.loadTexture("metal/ao.dds");
+            texAO = BgfxUtilities.loadTexture("metal/ao.dds");
 
             short vs = BgfxUtilities.loadShader("vs_rBRDF");
             short fs = BgfxUtilities.loadShader("fs_rBRDF");
