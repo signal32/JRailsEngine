@@ -87,6 +87,9 @@ public class Rails extends CoreApplication{
     Mesh testMesh;
     Shader testShader;
 
+    Mesh testMesh2;
+    Shader testShader2;
+
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
     // end test data
@@ -216,6 +219,7 @@ public class Rails extends CoreApplication{
 
 
         testMesh.draw(encoder,testShader);
+        testMesh2.draw(encoder,testShader2);
 
 
         time+= 0.0001;
@@ -298,13 +302,16 @@ public class Rails extends CoreApplication{
 
         //-------
 
-        Model testModel = Model.fromFile("dev/samples/test.obj");
-        //testMesh = testModel.meshes[0];
+        Model testModel = Model.fromFile("dev/samples/cube.gltf");
+        testMesh2 = testModel.meshes[0];
         //testMesh = new DebugCube().create();
 
         testMesh = new DebugCubeTex(textures).create();
         testShader = new PhysicallyBasedShader().create();
         //testMesh = new DebugCubeTex().create();
+
+            //testMesh2 = new DebugCubeTex(textures).create();
+            testShader2 = new PhysicallyBasedShader().create();
 
         cameraObject = new Camera(new Vector3f(0.0f,0.0f,3.0f),new Vector3f(0.0f,1.0f,0.0f));
 
