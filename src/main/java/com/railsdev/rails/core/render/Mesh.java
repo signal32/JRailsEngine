@@ -5,13 +5,14 @@ import org.lwjgl.bgfx.BGFXVertexLayout;
 import org.lwjgl.system.MemoryUtil;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.bgfx.BGFX.*;
 
 import static org.lwjgl.bgfx.BGFX.bgfx_vertex_layout_begin;
 
-public class Mesh {
+public class Mesh implements Serializable {
 
     public static final TextureCache textureCache = new TextureCache();
 
@@ -26,19 +27,19 @@ public class Mesh {
         TEX4,
     }
 
-    private Object[][] vertices;
-    private int[] indices;
-    private String[] texturePaths;
+    private final Serializable[][] vertices;
+    private final int[] indices;
+    private final String[] texturePaths;
 
-    private ByteBuffer verticesBuffer;
-    private ByteBuffer indicesBuffer;
+    private transient ByteBuffer verticesBuffer;
+    private transient ByteBuffer indicesBuffer;
 
     private VertexType[] vertexLayout;
     private BGFXVertexLayout layout;
 
-    public short vbh;
-    public short ibh;
-    private Texture[] textures;
+    private transient short vbh;
+    private transient short ibh;
+    private transient Texture[] textures;
 
 
     /**
@@ -47,7 +48,7 @@ public class Mesh {
      * @param indices Triangle indices
      * @param texturePaths List of textures used by mesh. Order matters, and are mapped 1:1 with texture uniforms of shader when drawn.
      */
-    public Mesh(Object[][] vertices, int[] indices, String... texturePaths) {
+    public Mesh(Serializable[][] vertices, int[] indices, String... texturePaths) {
         this.vertices = vertices;
         this.indices = indices;
         this.texturePaths = texturePaths;

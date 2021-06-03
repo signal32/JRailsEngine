@@ -2,12 +2,14 @@ package com.railsdev.rails.core.render.debug;
 
 import com.railsdev.rails.core.render.Mesh;
 
+import java.io.Serializable;
+
 /**
  * A debug cube Mesh with random vertex colours.
  */
 public class DebugCubeTex extends Mesh {
 
-    private static final Object[][] cubeVertices = {
+    private static final Serializable[][] cubeVertices = {
             { -1.0f, 1.0f, 1.0f,    0xff000000,     0.0f, 1.0f },   //TR
             { 1.0f, 1.0f, 1.0f,     0xff0000ff,     1.0f, 1.0f },   //BR
             { -1.0f, -1.0f, 1.0f,   0xff00ff00,     0.0f, 0.0f },   //BL

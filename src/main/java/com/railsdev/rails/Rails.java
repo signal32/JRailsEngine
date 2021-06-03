@@ -33,19 +33,6 @@ public class Rails extends CoreApplication{
 
     private static Logger LOGGER = LogManager.getLogger(Rails.class);
 
-    private short program;
-
-    private short uniformTexColor;
-    private short uniformTexNormal;
-    private short uniformTexMetal;
-    private short uniformTexRough;
-    private short uniformTexAO;
-
-    private short textureColor;
-    private short texNormal;
-    private short texMetal;
-    private short texRough;
-    private short texAO;
 
     private short uniformLightPositions;
     private short uniformLightColours;
@@ -53,7 +40,6 @@ public class Rails extends CoreApplication{
 
     private short uniformCameraPos;
     private FloatBuffer cameraPosBuffer;
-
 
 
     private Matrix4x3f view = new Matrix4x3f();     // View transformation matrix -- Transformation of vertices relative to camera space
@@ -89,6 +75,8 @@ public class Rails extends CoreApplication{
 
     Mesh testMesh2;
     Shader testShader2;
+
+    Model testModel;
 
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
@@ -176,8 +164,6 @@ public class Rails extends CoreApplication{
             bgfx_dbg_text_printf(100, 1, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
         }
 
-        // Calculate view matrix
-        //BgfxUtilities.lookAt(cameraTarget, camera, view);
 
         // Calculate projection matrix
         BgfxUtilities.perspective(60.0f, 1920, 1080, 0.1f, 100.0f, proj);
@@ -188,16 +174,16 @@ public class Rails extends CoreApplication{
         long encoder = bgfx_encoder_begin(false);
         bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.0001f),0).get4x4(modelBuf));
 
+        // TEMP - Set camerea position
         cameraPosBuffer.clear();
-        //float[] pos = {0.0f + time*time,0.0f + time,0.0f + time};
         float[] pos = {cameraObject.position.x,cameraObject.position.y,cameraObject.position.z};
-        //float[] pos = {0.0f,1.0f,0.0f};
         for (float f : pos){
             cameraPosBuffer.put(f);
         }
         cameraPosBuffer.flip();
         bgfx_encoder_set_uniform(encoder,uniformCameraPos,cameraPosBuffer,1);
 
+        // TEMP - Set light positions
         uniformBuf.clear();
         for (float[] ll : lightPos) {
             for (float l : ll) {
@@ -207,6 +193,7 @@ public class Rails extends CoreApplication{
         uniformBuf.flip();
         bgfx_encoder_set_uniform(encoder, uniformLightPositions, uniformBuf, 4);
 
+        // TEMP - Set light colours
         uniformBuf.clear();
         for (float[] ll : lightRgbInnerR) {
             for (float l : ll) {
@@ -215,21 +202,18 @@ public class Rails extends CoreApplication{
         }
         uniformBuf.flip();
         bgfx_encoder_set_uniform(encoder, uniformLightColours, uniformBuf, 4);
-        //bgfx_encoder_set_uniform(encoder, uniformCameraPos, uniformBuf, 1);
 
 
         testMesh.draw(encoder,testShader);
-        testMesh2.draw(encoder,testShader2);
-
-
-        time+= 0.0001;
+        //testMesh2.draw(encoder,testShader2);
+        testModel.draw(encoder,testShader2);
 
         bgfx_encoder_end(encoder);
-
 
         // Advance to next frame. Rendering thread will be kicked to
         // process submitted rendering primitives.
         bgfx_frame(false);
+        time+= 0.0001;
     }
 
     @Override
@@ -288,32 +272,25 @@ public class Rails extends CoreApplication{
     @Override
     public void beforeStart(Application application) {
         try {
-        //-------
 
-        String[] textures = {
-                "metal/color.dds",
-                "metal/normal.dds",
-                "metal/metal.dds",
-                "metal/rough.dds",
-                "metal/ao.dds"};
+            String[] textures = {
+                    "metal/color.dds",
+                    "metal/normal.dds",
+                    "metal/metal.dds",
+                    "metal/rough.dds",
+                    "metal/ao.dds"};
 
-        Mesh tstMesh = new DebugCubeTex(textures).create();
-        //Shader tstShader = new PhysicallyBasedShader();
+            testModel = Model.fromFile("dev/samples/multi.obj");
+            //testMesh2 = testModel.meshes[1];
+            //testMesh = new DebugCube().create();
 
-        //-------
+            testMesh = new DebugCubeTex(textures).create();
+            testShader = new PhysicallyBasedShader().create();
 
-        Model testModel = Model.fromFile("dev/samples/cube.gltf");
-        testMesh2 = testModel.meshes[0];
-        //testMesh = new DebugCube().create();
-
-        testMesh = new DebugCubeTex(textures).create();
-        testShader = new PhysicallyBasedShader().create();
-        //testMesh = new DebugCubeTex().create();
-
-            //testMesh2 = new DebugCubeTex(textures).create();
+                //testMesh2 = new DebugCubeTex(textures).create();
             testShader2 = new PhysicallyBasedShader().create();
 
-        cameraObject = new Camera(new Vector3f(0.0f,0.0f,3.0f),new Vector3f(0.0f,1.0f,0.0f));
+            cameraObject = new Camera(new Vector3f(0.0f,0.0f,3.0f),new Vector3f(0.0f,1.0f,0.0f));
 
 
 
@@ -321,22 +298,7 @@ public class Rails extends CoreApplication{
             uniformLightPositions = bgfx_create_uniform("lightPositions",BGFX_UNIFORM_TYPE_VEC4,4);
             uniformCameraPos = bgfx_create_uniform("cameraPos",BGFX_UNIFORM_TYPE_VEC4,1);
 
-            uniformTexColor = bgfx_create_uniform("s_albedo", BGFX_UNIFORM_TYPE_VEC4,1);
-            uniformTexNormal = bgfx_create_uniform("s_normal", BGFX_UNIFORM_TYPE_VEC4,1);
-            uniformTexMetal = bgfx_create_uniform("s_metallic", BGFX_UNIFORM_TYPE_VEC4,1);
-            uniformTexRough = bgfx_create_uniform("s_roughness", BGFX_UNIFORM_TYPE_VEC4,1);
-            uniformTexAO = bgfx_create_uniform("s_ao", BGFX_UNIFORM_TYPE_VEC4,1);
 
-            textureColor = BgfxUtilities.loadTexture("metal/color.dds");
-            texNormal = BgfxUtilities.loadTexture("metal/normal.dds");
-            texMetal = BgfxUtilities.loadTexture("metal/metal.dds");
-            texRough = BgfxUtilities.loadTexture("metal/rough.dds"); //Looks much worse with rough texture...?
-            texAO = BgfxUtilities.loadTexture("metal/ao.dds");
-
-            short vs = BgfxUtilities.loadShader("vs_rBRDF");
-            short fs = BgfxUtilities.loadShader("fs_rBRDF");
-
-            program = bgfx_create_program(vs, fs, true);
 
             viewBuf = MemoryUtil.memAllocFloat(16);
             projBuf = MemoryUtil.memAllocFloat(16);

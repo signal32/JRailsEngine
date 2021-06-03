@@ -70,7 +70,7 @@ public class ShaderCompiler {
             String line;
 
             if (br.readLine() == null){
-                LOGGER.info("Compiled {}", shader::getFileName);
+                LOGGER.debug("Compiled {}", shader::getFileName);
             }
             else {
                 LOGGER.error("Shader compiler failed: {}", shader::getFileName);

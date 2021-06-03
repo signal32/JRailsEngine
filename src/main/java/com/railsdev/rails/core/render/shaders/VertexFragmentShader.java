@@ -6,13 +6,12 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Arrays;
 
 import static org.lwjgl.bgfx.BGFX.*;
 
 public abstract class VertexFragmentShader implements Shader, Serializable {
 
-    private static Logger LOGGER = LogManager.getLogger(VertexFragmentShader.class);
+    private static final Logger LOGGER = LogManager.getLogger(VertexFragmentShader.class);
 
     protected transient short programID;
     protected final String vs;
@@ -35,7 +34,7 @@ public abstract class VertexFragmentShader implements Shader, Serializable {
 
         programID = bgfx_create_program(vsID,fsID,true);
 
-        LOGGER.info("Created shader ID={} VS={} FS={}",programID,vsID,fsID);
+        LOGGER.debug("Created shader ID={} VS={} FS={}",programID,vsID,fsID);
 
         return this;
     }
@@ -60,7 +59,7 @@ public abstract class VertexFragmentShader implements Shader, Serializable {
         for (var id : uniforms){
             bgfx_destroy_uniform(id);
         }
-        LOGGER.info("Destroyed shader ID={}",programID);
+        LOGGER.debug("Destroyed shader ID={}",programID);
     }
 
     abstract void setUniforms();

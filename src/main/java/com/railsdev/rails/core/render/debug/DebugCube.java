@@ -3,9 +3,11 @@ package com.railsdev.rails.core.render.debug;
 import com.railsdev.rails.core.render.Mesh;
 import com.railsdev.rails.core.render.Texture;
 
+import java.io.Serializable;
+
 public class DebugCube extends Mesh {
 
-    private static final Object[][] cubeVertices = {
+    private static final Serializable[][] cubeVertices = {
             { -1.0f, 1.0f, 1.0f, 0xff000000 },
             { 1.0f, 1.0f, 1.0f, 0xff0000ff },
             { -1.0f, -1.0f, 1.0f, 0xff00ff00 },

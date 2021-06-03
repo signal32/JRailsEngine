@@ -1,28 +1,81 @@
 package com.railsdev.rails.core.render;
 
+import com.railsdev.rails.core.render.shaders.Shader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.*;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.lwjgl.assimp.Assimp.*;
 import static java.lang.System.arraycopy;
 
-public class Model {
+/**
+ * A 3D model formed from a collection of {@link Mesh}. Each mesh has it's own texture/shader properties.<br>
+ * To load a mesh from any standard file format use {@link Model#fromFile(String)}.
+ * @author Hamish Weir 2021
+ * @see java.io.Serializable
+ */
+public class Model implements Serializable {
 
     private static final Logger LOGGER = LogManager.getLogger(Model.class);
 
+    //----------------------------------------------------------//
+    //                  MEMBERS                                 //
+    //----------------------------------------------------------//
+
+
     public Mesh[] meshes;
 
+    //----------------------------------------------------------//
+    //                  OBJECT INTERFACE                        //
+    //----------------------------------------------------------//
+
+
+    /**
+     * Create a new model from an existing set of meshes.
+     * @param meshes
+     */
     public Model(Mesh... meshes) {
         this.meshes = meshes;
     }
 
+    /**
+     * Prepare model for rendering.
+     * @return Self reference for method chaining.
+     * @throws IOException If external resources could not be prepared.
+     */
+    public Model create() throws IOException{
+        for (Mesh m : meshes){
+            m.create();
+        }
+        return this;
+    }
+
+    /**
+     * Draws each {@link Mesh} of the Model. Default shaders are overridden.
+     * @param encoder Encoder ID to use
+     * @param shader Shader to use
+     */
+    public void draw(long encoder, Shader shader){
+        for (Mesh m : meshes){
+            m.draw(encoder,shader);
+        }
+    }
+
+    //-----------------------------------------------------------//
+    //                  MODEL LOADING                            //
+    //-----------------------------------------------------------//
+
+    /**
+     * Load a model from file using assimp.
+     * @param path location of 3D model file relative to executable. Obj/dae/gltf.
+     * @return An initialised (for now, this will change) instance of the model available for rendering inside the engine.
+     * @throws IOException if the file is not found or some other non-recoverable issue occurs while loading.
+     */
     public static Model fromFile(String path) throws IOException {
         AIScene scene = aiImportFile(path,aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_MakeLeftHanded);
 
@@ -31,12 +84,13 @@ public class Model {
         }
 
         int meshCount = scene.mNumMeshes();
-        Mesh[] meshes = processNode(scene.mRootNode(),scene, new Mesh[meshCount],0);
+        Mesh[] meshes = new Mesh[meshCount];
+        processNode(scene.mRootNode(),scene, meshes,0);
 
         return new Model(meshes);
     }
 
-    public static Mesh[] processNode(AINode node, AIScene scene, Mesh[] meshes, int meshPos) throws IOException {
+    private static int processNode(AINode node, AIScene scene, Mesh[] meshes, int meshPos) throws IOException {
 
         // Load this nodes meshes
         int numMeshes = node.mNumMeshes();
@@ -53,15 +107,15 @@ public class Model {
         // Repeat for each child node
         PointerBuffer aiNodes = node.mChildren();
         for (int i = 0; i < node.mNumChildren(); i++){
-            processNode(AINode.create(aiNodes.get(i)),scene, meshes, meshPos);
+            meshPos = processNode(AINode.create(aiNodes.get(i)),scene, meshes, meshPos);
             //arraycopy(processNode(subMeshes,0,meshes,meshPos,meshes.length - meshPos);
 
         }
 
-        return meshes;
+        return meshPos;
     }
 
-    public static Mesh processMesh(AIMesh mesh, AIScene scene) throws IOException {
+    private static Mesh processMesh(AIMesh mesh, AIScene scene) throws IOException {
         int vertexCount = mesh.mNumVertices();
         int faceCount = mesh.mNumFaces();
         String name = mesh.mName().dataString();
@@ -71,7 +125,7 @@ public class Model {
         AIVector3D.Buffer texBuf0 = mesh.mTextureCoords(0); // We only support one texture uv map at the moment
         AIFace.Buffer faceBuf = mesh.mFaces();
 
-        Object[][] vertices = new Object[vertexCount][3+3+2]; // vec3 pos, vec3 normal, vec2 tex0
+        Serializable[][] vertices = new Serializable[vertexCount][3+3+2]; // vec3 pos, vec3 normal, vec2 tex0
         int[] indices = new int[faceCount * 3];
 
         int i = 0;
@@ -116,7 +170,7 @@ public class Model {
     }
 
 
-    public static String[] getTextures(AIMaterial aiMaterial){
+    private static String[] getTextures(AIMaterial aiMaterial){
 
         Assimp.aiGetMaterialTextureCount(aiMaterial, aiTextureType_NONE);
         String[] textures = new String[5];
@@ -139,23 +193,6 @@ public class Model {
         textures[4] = path.dataString();
 
         return textures;
-    }
-
-
-
-    //---------------
-
-
-    protected static void processIndices(AIMesh aiMesh, List<Integer> indices) {
-        int numFaces = aiMesh.mNumFaces();
-        AIFace.Buffer aiFaces = aiMesh.mFaces();
-        for (int i = 0; i < numFaces; i++) {
-            AIFace aiFace = aiFaces.get(i);
-            IntBuffer buffer = aiFace.mIndices();
-            while (buffer.remaining() > 0) {
-                indices.add(buffer.get());
-            }
-        }
     }
 
 
