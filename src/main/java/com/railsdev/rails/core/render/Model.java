@@ -9,9 +9,10 @@ import org.lwjgl.assimp.*;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.IntBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.lwjgl.assimp.Assimp.*;
-import static java.lang.System.arraycopy;
 
 /**
  * A 3D model formed from a collection of {@link Mesh}. Each mesh has it's own texture/shader properties.<br>
@@ -23,10 +24,20 @@ public class Model implements Serializable {
 
     private static final Logger LOGGER = LogManager.getLogger(Model.class);
 
+    // List of supported texture types and their internal name - tbh this shouldn't be defined in this class
+    private static final Object[][] TEXTURE_TYPES = {
+        {aiTextureType_DIFFUSE,"diffuse"},
+        {aiTextureType_BASE_COLOR,"base_color"},
+        {aiTextureType_NORMALS,"normal"},
+        {aiTextureType_METALNESS,"metalness"},
+        {aiTextureType_DIFFUSE_ROUGHNESS,"roughness"},
+        {aiTextureType_AMBIENT_OCCLUSION,"ao"}
+
+    };
+
     //----------------------------------------------------------//
     //                  MEMBERS                                 //
     //----------------------------------------------------------//
-
 
     public Mesh[] meshes;
 
@@ -72,6 +83,7 @@ public class Model implements Serializable {
 
     /**
      * Load a model from file using assimp.
+     * @implNote This operation is expensive due to complex nature of parsing external files. Do not use in hot code (favour serialization) and consider delegating to worker thread.
      * @param path location of 3D model file relative to executable. Obj/dae/gltf.
      * @return An initialised (for now, this will change) instance of the model available for rendering inside the engine.
      * @throws IOException if the file is not found or some other non-recoverable issue occurs while loading.
@@ -99,9 +111,17 @@ public class Model implements Serializable {
         IntBuffer nodeMeshes = node.mMeshes();          //Get indexes of this nodes meshes within the overall scene
         PointerBuffer sceneMeshes = scene.mMeshes();    //Get a pointer to meshes within scene
         for (int i = 0; i < numMeshes; i++) {
+
+            if (meshPos >= meshes.length){
+                LOGGER.warn("More meshes than expected. Some geometry has been skipped.");
+                break;
+            }
+
             AIMesh aiMesh =  AIMesh.create(sceneMeshes.get(nodeMeshes.get(i))); //wtf.. Find the mesh data within the scene for each mesh on this node
             meshes[meshPos] = processMesh(aiMesh, scene);                       //Process meshes and store
+
             meshPos++;
+
         }
 
         // Repeat for each child node
@@ -160,40 +180,48 @@ public class Model implements Serializable {
         //mesh.mMaterialIndex();
         PointerBuffer aiMaterials = scene.mMaterials();
         AIMaterial aiMaterial = AIMaterial.create(aiMaterials.get(mesh.mMaterialIndex()));
-        String[] textures = getTextures(aiMaterial);
+        Map<String, String[]> textures = getTextures(aiMaterial);
 
-        LOGGER.debug("Loaded '{}' verts: {}, tris: {}",name, vertexCount, faceCount);
+        LOGGER.debug("Loaded '{}' verts: {}, tris: {}, mat: {}",name, vertexCount, faceCount, textures.keySet());
 
-        return new Mesh(vertices,indices,textures)
+        return new Mesh(vertices,indices, textures.get("diffuse")) //TODO create system to pick required/available textures
                 .setVertexLayout(Mesh.VertexType.POSITION,Mesh.VertexType.NORMAL,Mesh.VertexType.UV)
                 .create();
     }
 
 
-    private static String[] getTextures(AIMaterial aiMaterial){
+    /**
+     * Get a list of all textures for each supported texture type.
+     * @implNote Uses dynamic heap allocation - don't use in hot code.
+     * @param aiMaterial The material to fetch textures for
+     * @return List of texture paths per texture type
+     */
+    private static Map<String, String[]> getTextures(AIMaterial aiMaterial){
 
-        Assimp.aiGetMaterialTextureCount(aiMaterial, aiTextureType_NONE);
-        String[] textures = new String[5];
+        Map<String, String[]> textureMap = new HashMap<>();
+        AIString pathBuf = AIString.calloc();
 
-        AIString path = AIString.calloc();
+        for (var type : TEXTURE_TYPES){
 
-        Assimp.aiGetMaterialTexture(aiMaterial,aiTextureType_BASE_COLOR,0,path,(IntBuffer) null,null,null,null,null,null);
-        textures[0] = path.dataString();
+            // Create an array to fit each texture
+            int count = Assimp.aiGetMaterialTextureCount(aiMaterial, (int) type[0]);
 
-        Assimp.aiGetMaterialTexture(aiMaterial,aiTextureType_NORMALS,0,path,(IntBuffer) null,null,null,null,null,null);
-        textures[1] = path.dataString();
+            if (count == 0) continue;
 
-        Assimp.aiGetMaterialTexture(aiMaterial,aiTextureType_METALNESS,0,path,(IntBuffer) null,null,null,null,null,null);
-        textures[2] = path.dataString();
+            String[] texturePaths = new String[count];
 
-        Assimp.aiGetMaterialTexture(aiMaterial,aiTextureType_DIFFUSE_ROUGHNESS,0,path,(IntBuffer) null,null,null,null,null,null);
-        textures[3] = path.dataString();
+            // Get each textures path from assimp
+            for (int i = 0; i < count; i++){
+                Assimp.aiGetMaterialTexture(aiMaterial,(int)type[0],0,pathBuf,(IntBuffer) null,null,null,null,null,null);
+                texturePaths[i] = pathBuf.dataString();
+            }
 
-        Assimp.aiGetMaterialTexture(aiMaterial,aiTextureType_AMBIENT_OCCLUSION,0,path,(IntBuffer) null,null,null,null,null,null);
-        textures[4] = path.dataString();
+            textureMap.put((String) type[1], texturePaths);
+        }
 
-        return textures;
+        return textureMap;
     }
+
 
 
 }

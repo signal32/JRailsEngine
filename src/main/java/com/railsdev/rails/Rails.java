@@ -6,6 +6,7 @@ import com.railsdev.rails.core.context.Application;
 import com.railsdev.rails.core.context.CoreApplication;
 import com.railsdev.rails.core.render.*;
 import com.railsdev.rails.core.render.debug.DebugCubeTex;
+import com.railsdev.rails.core.render.shaders.DebugShader;
 import com.railsdev.rails.core.render.shaders.PhysicallyBasedShader;
 import com.railsdev.rails.core.render.shaders.Shader;
 import org.apache.logging.log4j.Level;
@@ -77,6 +78,7 @@ public class Rails extends CoreApplication{
     Shader testShader2;
 
     Model testModel;
+    Shader debugShader;
 
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
@@ -206,7 +208,7 @@ public class Rails extends CoreApplication{
 
         testMesh.draw(encoder,testShader);
         //testMesh2.draw(encoder,testShader2);
-        testModel.draw(encoder,testShader2);
+        testModel.draw(encoder,debugShader);
 
         bgfx_encoder_end(encoder);
 
@@ -280,7 +282,7 @@ public class Rails extends CoreApplication{
                     "metal/rough.dds",
                     "metal/ao.dds"};
 
-            testModel = Model.fromFile("dev/samples/multi.obj");
+            testModel = Model.fromFile("dev/samples/model/SkiLiftGround_Tower.obj");
             //testMesh2 = testModel.meshes[1];
             //testMesh = new DebugCube().create();
 
@@ -292,7 +294,7 @@ public class Rails extends CoreApplication{
 
             cameraObject = new Camera(new Vector3f(0.0f,0.0f,3.0f),new Vector3f(0.0f,1.0f,0.0f));
 
-
+            debugShader = new DebugShader().create();
 
             uniformLightColours = bgfx_create_uniform("lightColors",BGFX_UNIFORM_TYPE_VEC4,4);
             uniformLightPositions = bgfx_create_uniform("lightPositions",BGFX_UNIFORM_TYPE_VEC4,4);
@@ -308,7 +310,7 @@ public class Rails extends CoreApplication{
         }
         catch (Exception e){
             LOGGER.error(e.getMessage());
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
 
         glfwSetCursorPosCallback(window, this::mouseCallback);

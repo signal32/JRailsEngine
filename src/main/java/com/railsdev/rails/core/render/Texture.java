@@ -6,7 +6,6 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.io.Serializable;
 
-import static org.lwjgl.bgfx.BGFX.*;
 
 public class Texture implements Serializable {
 

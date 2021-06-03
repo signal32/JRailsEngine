@@ -51,7 +51,7 @@ public class Mesh implements Serializable {
     public Mesh(Serializable[][] vertices, int[] indices, String... texturePaths) {
         this.vertices = vertices;
         this.indices = indices;
-        this.texturePaths = texturePaths;
+        this.texturePaths = (texturePaths != null) ? texturePaths : new String[0];
     }
 
     public Mesh setVertexLayout(VertexType... vertexLayout){
@@ -82,7 +82,7 @@ public class Mesh implements Serializable {
         return this;
     }
 
-    public Mesh create() throws IOException {
+    public Mesh create() throws IOException { //TODO handle mesh being re-created (throw exception or destroy and re-load)
         verticesBuffer = MemoryUtil.memAlloc(vertices.length * (vertices[0].length * 4)); // Crappy - Each vertex attribute element is allocated 4 bytes, even if it is smaller (or bigger)
         vbh = BgfxUtilities.createVertexBuffer(verticesBuffer, layout, vertices);
 
