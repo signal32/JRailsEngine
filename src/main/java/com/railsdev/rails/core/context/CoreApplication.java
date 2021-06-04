@@ -1,79 +1,92 @@
 package com.railsdev.rails.core.context;
 
 import com.railsdev.rails.core.render.Renderer;
-import org.lwjgl.glfw.*;
-import org.lwjgl.system.*;
+import com.railsdev.rails.core.utils.Sync;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import static org.lwjgl.bgfx.BGFX.*;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.system.MemoryUtil.*;
+import static java.lang.System.currentTimeMillis;
+import static java.lang.System.nanoTime;
 
 public abstract class CoreApplication implements Application {
 
-    private static final double FRAMETIME = 1.0/25.0;
+    private static final Logger LOGGER = LogManager.getLogger(CoreApplication.class);
+
+    private static final int    TARGET_FRAMERATE    = 5;
+    private static final double UNITS               = 100_000_000; //ns
+    private static final long   UPDATES_PER_SECOND  = 25;
+    private static final double FRAMETIME           = UNITS/UPDATES_PER_SECOND;
+    private static final int    MAX_UPDATES         = 10;
 
     protected long window;
+    protected Window mainWindow;
     protected Renderer renderer;
+    protected Context context;
 
-    public CoreApplication() {
+    private final Sync sync = new Sync();
+
+    protected CoreApplication() {
+        context = new DesktopContext();
+        renderer = new Renderer();
     }
 
     @Override
     public void start(Config appConfig) {
 
-        // start glfw
-        if (!glfwInit())
-            throw new RuntimeException("Could not initialise GLFW");
+        // Start context subsystem
+        context.init();
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        if (Platform.get() == Platform.MACOSX)
-            glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
-
-        window = glfwCreateWindow(1920,1080,"Test!",0,0);
-        if (window == NULL){
-            throw new RuntimeException("Could not create window");
+        Window.Config windowConfig = new Window.Config();
+        windowConfig.type = Window.Type.WINDOWED;
+        windowConfig.title = appConfig.title;
+        windowConfig.width = appConfig.width;
+        windowConfig.height = appConfig.height;
+        try {
+            mainWindow = context.createWindow(windowConfig);
+        } catch (Exception e){
+            LOGGER.error(e.getMessage());
         }
 
-        // Register callbacks
-        glfwSetKeyCallback(window,(windowHnd, key, scancode, action, mods) -> {
-            if (action != GLFW_RELEASE) {
-                return;
-            }
-
-            switch (key) {
-                case GLFW_KEY_ESCAPE:
-                    glfwSetWindowShouldClose(windowHnd, true);
-                    break;
-            }
-        });
-
-        // start renderer
+        // start renderer subsystem
         Renderer.Config config = new Renderer.Config();
-        config.height = 1080;
-        config.width = 1920;
-        config.nativeWindowHandle = GLFWNativeWin32.glfwGetWin32Window(window); //TODO need some platform abstraction here
-
-        renderer = new Renderer();
+        config.height = appConfig.height;
+        config.width = appConfig.width;
+        config.nativeWindowHandle = mainWindow.handle();
         renderer.init(config);
 
-        beforeStart(this);
+        // Callback to user defined initialisation (after core subsystems are initialised)
+        init(this);
 
+        LOGGER.info("Initialisation completed");
+
+
+        // Prepare application loop
         long timeStart = System.currentTimeMillis();
         double accumulator = FRAMETIME;
         double delta = 1.0/60.0;
 
-        // Start loop
-        while(!glfwWindowShouldClose(window)){
-            glfwPollEvents();
+        LOGGER.debug("Starting application loop: frametime={} deta={}",FRAMETIME,delta);
 
-            while(accumulator >= FRAMETIME){
+        this.loop();
 
+        // Enter loop
+        while(!glfwWindowShouldClose(mainWindow.id())){
 
-                accumulator -= FRAMETIME;
+            // Get inputs
+            context.update();
+
+            while(accumulator >= delta){
+
+                update(delta);
+                accumulator -= delta;
             }
-            logicEvent(FRAMETIME);
-            drawEvent(delta);
+
+
+            renderer.update(0);
+            renderer.pushDebugText(100,1,String.format("time % 7.3f",delta));
+            drawStart(delta);
 
             long timeEnd = System.currentTimeMillis();
             delta = (timeEnd - timeStart)/1000000.0;
@@ -81,16 +94,19 @@ public abstract class CoreApplication implements Application {
             timeStart = timeEnd;
         }
 
-        bgfx_shutdown();
-        shutdown();
+
+
+        shutdown(this);
+        destroy();
 
     }
 
     @Override
-    public void shutdown() {
-        glfwDestroyWindow(window);
+    public void destroy() {
+        bgfx_shutdown();
+        //glfwDestroyWindow(window);
+        context.shutdown();
         glfwTerminate();
-
     }
 
     @Override
@@ -98,6 +114,41 @@ public abstract class CoreApplication implements Application {
 
     }
 
+    public abstract void shutdown(Application application);
 
-    abstract public void beforeStart(Application application);
+    public abstract void init(Application application);
+
+    private void loop(){
+        double previous = nanoTime();
+        double lag = 0.0f;
+
+        while (!glfwWindowShouldClose(mainWindow.id())){
+            double current = nanoTime();
+            double elapsed = current - previous;
+            previous = current;
+            lag += elapsed;
+
+            // Get input
+            context.update();
+
+            // Update simulation until on time (or escape at MAX_UPDATES if unable to catch up)
+            int it = 0;
+            while (lag >= FRAMETIME && it < MAX_UPDATES) {
+                this.update(FRAMETIME/UNITS);
+                lag -= FRAMETIME;
+                it++;
+            }
+
+            // Render frame
+            double delta = lag/FRAMETIME;
+            renderer.pushDebugText(100,1,String.format("Updates/frame=%d delta=%10.5f ns", it, delta));
+            drawStart(delta);
+            renderer.update(delta);
+            drawEnd(delta);
+
+            sync.sync(TARGET_FRAMERATE);
+
+        }
+    }
+
 }

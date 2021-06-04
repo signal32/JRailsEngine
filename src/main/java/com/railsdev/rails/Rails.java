@@ -15,7 +15,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
-import org.joml.Math;
 import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
@@ -51,9 +50,9 @@ public class Rails extends CoreApplication{
     private FloatBuffer modelBuf;
     float time = 0;
 
-    float speedx = 0;
-    float speedy = 0;
-    float speedz = 0;
+    double speedx = 0;
+    double speedy = 0;
+    double speedz = 0;
     boolean debug = true;
 
     private static final float[][] lightRgbInnerR = {
@@ -119,7 +118,7 @@ public class Rails extends CoreApplication{
 
         Rails rails = new Rails();
         rails.start(config);
-        rails.shutdown();
+        //rails.destroy();
     }
 
     boolean firstMouse = true;
@@ -152,18 +151,18 @@ public class Rails extends CoreApplication{
     }
 
     @Override
-    public void drawEvent(double delta) {
+    public void drawStart(double delta) {
         //bgfx_touch(0);
         if (debug) {
 
-            bgfx_dbg_text_clear(0, false);
+            //bgfx_dbg_text_clear(0, false);
 
             bgfx_dbg_text_printf(0, 0, 0x1f, "Rails Debug");
             bgfx_dbg_text_printf(0, 1, 0x3f, String.format("Camera: z % 7.3f[ms] x % 7.3f[ms] y % 7.3f[ms] X: %f Y: %f Z = %f", speedz, speedx, speedy, cameraObject.position.x, cameraObject.position.y, cameraObject.position.z));
             bgfx_dbg_text_printf(0, 2, 0x3f, String.format("Time: % 7.3f", time));
             bgfx_dbg_text_printf(0, 3, 0x0f, "Color can be changed with ANSI \u001b[9;me\u001b[10;ms\u001b[11;mc\u001b[12;ma\u001b[13;mp\u001b[14;me\u001b[0m code too.");
             bgfx_dbg_text_printf(100, 0, 0x0f, "\u001b[;0m    \u001b[;1m    \u001b[; 2m    \u001b[; 3m    \u001b[; 4m    \u001b[; 5m    \u001b[; 6m    \u001b[; 7m    \u001b[0m");
-            bgfx_dbg_text_printf(100, 1, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
+            //bgfx_dbg_text_printf(100, 1, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
         }
 
 
@@ -174,7 +173,7 @@ public class Rails extends CoreApplication{
         bgfx_set_view_transform(0, cameraObject.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
 
         long encoder = bgfx_encoder_begin(false);
-        bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.0001f),0).get4x4(modelBuf));
+        bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.01f),0).get4x4(modelBuf));
 
         // TEMP - Set camerea position
         cameraPosBuffer.clear();
@@ -215,64 +214,78 @@ public class Rails extends CoreApplication{
         // Advance to next frame. Rendering thread will be kicked to
         // process submitted rendering primitives.
         bgfx_frame(false);
-        time+= 0.0001;
+        time+= 0.1;
     }
 
     @Override
-    public void logicEvent(double delta) {
-        float acceleration = 0.01f;
-        float cameraSpeed = 0.2f;
+    public void drawEnd(double delta) {
+
+    }
+
+    double timeThen = System.currentTimeMillis();
+    @Override
+    public void update(double delta) {
+        //double timeNow = System.currentTimeMillis();
+        //double el = 1/(timeNow- timeThen);
+        //this.renderer.pushDebugText(100,1,String.format("time %f",el));
+        float acceleration = 0.1f;
+        float cameraSpeed = 1.5f;
 
         // Left - right
-        if(glfwGetKey(this.window,GLFW_KEY_A) == GLFW_PRESS)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_A) == GLFW_PRESS)
             speedz+= (speedz < cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_A) == GLFW_RELEASE)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_A) == GLFW_RELEASE)
             speedz-= (speedz-acceleration > 0) ? acceleration : 0;
 
-        if(glfwGetKey(this.window,GLFW_KEY_D) == GLFW_PRESS)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_D) == GLFW_PRESS)
             speedz-= (speedz > -cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_D) == GLFW_RELEASE)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_D) == GLFW_RELEASE)
             speedz+= (speedz+acceleration < 0) ? acceleration : 0;
 
         // Forward - backward
-        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_PRESS)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_W) == GLFW_PRESS)
             speedx+= (speedx < cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_W) == GLFW_RELEASE)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_W) == GLFW_RELEASE)
             speedx-= (speedx > 0) ? acceleration : 0;
 
-        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_PRESS)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_S) == GLFW_PRESS)
             speedx-= (speedx > -cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_S) == GLFW_RELEASE)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_S) == GLFW_RELEASE)
             speedx+= (speedx+acceleration < 0) ? acceleration : 0;
 
         // up - down
-        if(glfwGetKey(this.window,GLFW_KEY_Q) == GLFW_PRESS)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_Q) == GLFW_PRESS)
             speedy+= (speedy < cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_Q) == GLFW_RELEASE)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_Q) == GLFW_RELEASE)
             speedy-= (speedy > 0.1) ? acceleration : 0;
 
-        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_PRESS)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_E) == GLFW_PRESS)
             speedy-= (speedy > -cameraSpeed) ? acceleration : 0;
-        if(glfwGetKey(this.window,GLFW_KEY_E) == GLFW_RELEASE)
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_E) == GLFW_RELEASE)
             speedy+= (speedy < 0) ? acceleration : 0;
 
-        if(glfwGetKey(this.window,GLFW_KEY_TAB) == GLFW_PRESS) {
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_TAB) == GLFW_PRESS) {
             speedz = 0;
             speedx = 0;
         }
-        if(glfwGetKey(this.window,GLFW_KEY_R) == GLFW_PRESS) {
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_R) == GLFW_PRESS) {
             cameraObject.position.x = 0;
             cameraObject.position.y = 0;
             cameraObject.position.z = 0;
         }
 
 
-        cameraObject.processKeyboard(Camera.CameraMovement.RIGHT,speedz);
-        cameraObject.processKeyboard(Camera.CameraMovement.FORWARD,speedx);
+        cameraObject.processKeyboard(Camera.CameraMovement.RIGHT, (float) (speedz * delta));
+        cameraObject.processKeyboard(Camera.CameraMovement.FORWARD, (float) (speedx * delta));
     }
 
     @Override
-    public void beforeStart(Application application) {
+    public void shutdown(Application application) {
+
+    }
+
+    @Override
+    public void init(Application application) {
         try {
 
             String[] textures = {
@@ -282,7 +295,8 @@ public class Rails extends CoreApplication{
                     "metal/rough.dds",
                     "metal/ao.dds"};
 
-            testModel = Model.fromFile("dev/samples/model/SkiLiftGround_Tower.obj");
+            //testModel = Model.fromFile("dev/samples/model/SkiLiftGround_Tower.obj");
+            testModel = Model.fromFile("dev/samples/cubeMaped.obj");
             //testMesh2 = testModel.meshes[1];
             //testMesh = new DebugCube().create();
 
@@ -313,8 +327,8 @@ public class Rails extends CoreApplication{
             throw new RuntimeException(e);
         }
 
-        glfwSetCursorPosCallback(window, this::mouseCallback);
+        glfwSetCursorPosCallback(mainWindow.id(), this::mouseCallback);
 
-        glfwSetFramebufferSizeCallback(window, this::resize);
+        glfwSetFramebufferSizeCallback(mainWindow.id(), this::resize);
     }
 }

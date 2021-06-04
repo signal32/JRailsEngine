@@ -28,6 +28,7 @@ public class Texture implements Serializable {
             LOGGER.error("Could not load '{}' : {}",path,e.getLocalizedMessage());
             id = BgfxUtilities.loadTexture("missing.dds");
         }
+        LOGGER.debug("Created handle ID={} for '{}'",id,path);
         return this;
     }
 

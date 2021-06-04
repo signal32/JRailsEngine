@@ -6,7 +6,7 @@ public class DebugShader extends VertexFragmentShader {
 
     private static final String VERTEX_SHADER = "vs_rBasicUnlit";
     private static final String FRAGMENT_SHADER = "fs_rBasicUnlit";
-    private static final int UNIFORM_COUNT = 5;
+    private static final int UNIFORM_COUNT = 1;
 
     public DebugShader() {
         super(VERTEX_SHADER, FRAGMENT_SHADER, UNIFORM_COUNT);

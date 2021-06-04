@@ -31,7 +31,7 @@ public class Renderer {
     public void init(Config config){
         BGFXInit init = BGFXInit.mallocStack(stack);
         bgfx_init_ctor(init);
-        init.resolution(it -> it.width(config.width).height(config.height).reset(BGFX_RESET_VSYNC));
+        init.resolution(it -> it.width(config.width).height(config.height).reset(BGFX_RESET_NONE));
         init.type(BGFX_RENDERER_TYPE_VULKAN);
 
         init.platformData().nwh(config.nativeWindowHandle);
@@ -56,8 +56,12 @@ public class Renderer {
 
     }
 
-    public void update(float delta){
+    public void update(double delta){
+        bgfx_dbg_text_clear(0, false);
+    }
 
+    public void pushDebugText(int col, int row, CharSequence value){
+        bgfx_dbg_text_printf(col,row,0x1f,value);
     }
 
     public void shutdown(){

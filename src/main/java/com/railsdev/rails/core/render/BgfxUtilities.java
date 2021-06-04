@@ -234,7 +234,12 @@ public class BgfxUtilities {
 
         BGFXMemory textureMemory = bgfx_make_ref_release(textureData, releaseMemoryCb, NULL);
 
-        return bgfx_create_texture(textureMemory, BGFX_TEXTURE_NONE, 0, null);
+        short id = bgfx_create_texture(textureMemory, BGFX_TEXTURE_NONE, 0, null);
+
+        if (id == -1)
+            throw new IOException("bgfx_create_texture failed (-1)");
+
+        return id;
     }
 
     static void reportSupportedRenderers() {

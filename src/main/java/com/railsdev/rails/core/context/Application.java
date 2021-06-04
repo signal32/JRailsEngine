@@ -3,11 +3,12 @@ package com.railsdev.rails.core.context;
 public interface Application {
 
     public void start(Config config);
-    public void shutdown();
+    public void destroy();
 
     abstract void run();
-    abstract void drawEvent(double delta);
-    abstract void logicEvent(double delta);
+    abstract void drawStart(double delta);
+    abstract void drawEnd(double delta);
+    abstract void update(double delta);
 
     class Config{
        public int width;

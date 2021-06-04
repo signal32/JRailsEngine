@@ -221,7 +221,4 @@ public class Model implements Serializable {
 
         return textureMap;
     }
-
-
-
 }
