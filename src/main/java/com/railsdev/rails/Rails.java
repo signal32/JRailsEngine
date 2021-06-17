@@ -6,9 +6,7 @@ import com.railsdev.rails.core.context.Application;
 import com.railsdev.rails.core.context.CoreApplication;
 import com.railsdev.rails.core.render.*;
 import com.railsdev.rails.core.render.debug.DebugCubeTex;
-import com.railsdev.rails.core.render.shaders.DebugShader;
-import com.railsdev.rails.core.render.shaders.PhysicallyBasedShader;
-import com.railsdev.rails.core.render.shaders.Shader;
+import com.railsdev.rails.core.render.shaders.*;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,6 +16,7 @@ import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
+import org.lwjgl.bgfx.BGFXAttachment;
 import org.lwjgl.bgfx.BGFXReleaseFunctionCallback;
 import org.lwjgl.system.MemoryUtil;
 
@@ -31,7 +30,9 @@ import static org.lwjgl.glfw.GLFW.*;
 
 public class Rails extends CoreApplication{
 
-    private static Logger LOGGER = LogManager.getLogger(Rails.class);
+    private static final Logger LOGGER = LogManager.getLogger(Rails.class);
+
+
 
 
     private short uniformLightPositions;
@@ -40,6 +41,14 @@ public class Rails extends CoreApplication{
 
     private short uniformCameraPos;
     private FloatBuffer cameraPosBuffer;
+
+    private short cubeMapFB;
+    private short[] cubemapTextures = new short[6];
+    private short cubeMapTex;
+    private short[] cubeMapFBs = new short[6];
+    private BGFXAttachment cubeMapAt;
+    private Matrix4x3f[] cubeCaptureViews= new Matrix4x3f[6];
+    private Shader cubeMapShader;
 
 
     private Matrix4x3f view = new Matrix4x3f();     // View transformation matrix -- Transformation of vertices relative to camera space
@@ -79,6 +88,8 @@ public class Rails extends CoreApplication{
     Model testModel;
     Shader debugShader;
 
+    Shader skybox;
+
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
     // end test data
@@ -88,8 +99,6 @@ public class Rails extends CoreApplication{
 
 
     public static void main(String[] args) {
-
-
 
         String[] argv = {"-log","warn","-render","vk"};
         JCommander.newBuilder()
@@ -104,7 +113,7 @@ public class Rails extends CoreApplication{
         ctx.updateLoggers();  // This causes all Loggers to refetch information from their LoggerConfig.
 
         //Compile shaders
-        ShaderCompiler.compile("dev/shaders/src", "spirv");
+        //ShaderCompiler.compile("dev/shaders/src", "spirv");
 
         LOGGER.info("Hello from Rails!");
         LOGGER.info("Logging Level: {}", loggerConfig.getLevel());
@@ -118,7 +127,6 @@ public class Rails extends CoreApplication{
 
         Rails rails = new Rails();
         rails.start(config);
-        //rails.destroy();
     }
 
     boolean firstMouse = true;
@@ -165,15 +173,18 @@ public class Rails extends CoreApplication{
             //bgfx_dbg_text_printf(100, 1, 0x0f, "\u001b[;8m    \u001b[;9m    \u001b[;10m    \u001b[;11m    \u001b[;12m    \u001b[;13m    \u001b[;14m    \u001b[;15m    \u001b[0m");
         }
 
+        // SETUP DEFERRED
+        //BgfxUtilities.perspective(90.0f, 512, 512, 0.1f, 100.0f, proj);
 
         // Calculate projection matrix
         BgfxUtilities.perspective(60.0f, 1920, 1080, 0.1f, 100.0f, proj);
 
         // Send matrices to bgfx
-        bgfx_set_view_transform(0, cameraObject.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
+        bgfx_set_view_transform(Renderer.RENDER_PASS_SCENE, cameraObject.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
 
         long encoder = bgfx_encoder_begin(false);
-        bgfx_encoder_set_transform(encoder, model.rotateXYZ(0,(1 * 0.01f),0).get4x4(modelBuf));
+
+        bgfx_encoder_set_transform(encoder, model.get4x4(modelBuf));
 
         // TEMP - Set camerea position
         cameraPosBuffer.clear();
@@ -188,6 +199,7 @@ public class Rails extends CoreApplication{
         uniformBuf.clear();
         for (float[] ll : lightPos) {
             for (float l : ll) {
+
                 uniformBuf.putFloat(l);
             }
         }
@@ -204,8 +216,14 @@ public class Rails extends CoreApplication{
         uniformBuf.flip();
         bgfx_encoder_set_uniform(encoder, uniformLightColours, uniformBuf, 4);
 
+        bgfx_encoder_set_vertex_buffer(encoder,0,testMesh.vbh,0,36);
+        bgfx_encoder_set_index_buffer(encoder,testMesh.ibh,0,36);
+        bgfx_encoder_set_texture(encoder,0,skybox.getUniform(0),cubeMapTex, BGFX_SAMPLER_UVW_MIRROR);
+        bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0);
+        bgfx_encoder_submit(encoder, Renderer.RENDER_PASS_SCENE, skybox.id(), 0, 0);
 
-        testMesh.draw(encoder,testShader);
+
+        //testMesh.draw(encoder,testShader,Renderer.RENDER_PASS_SCENE);
         //testMesh2.draw(encoder,testShader2);
         testModel.draw(encoder,debugShader);
 
@@ -228,6 +246,8 @@ public class Rails extends CoreApplication{
         //double timeNow = System.currentTimeMillis();
         //double el = 1/(timeNow- timeThen);
         //this.renderer.pushDebugText(100,1,String.format("time %f",el));
+        model.rotateXYZ(0,(1 * 0.001f),0);
+
         float acceleration = 0.1f;
         float cameraSpeed = 1.5f;
 
@@ -300,8 +320,13 @@ public class Rails extends CoreApplication{
             //testMesh2 = testModel.meshes[1];
             //testMesh = new DebugCube().create();
 
-            testMesh = new DebugCubeTex(textures).create();
-            testShader = new PhysicallyBasedShader().create();
+            // PBR DEMO OBJECTS
+            //testMesh = new DebugCubeTex(textures).create();
+            //testShader = new PhysicallyBasedShader().create();
+
+            // CUBEMAP DEMO OBJECTS
+            testMesh = new DebugCubeTex("cubemap/cubemap.dds").create();
+            testShader = new CubemapShader().create();
 
                 //testMesh2 = new DebugCubeTex(textures).create();
             testShader2 = new PhysicallyBasedShader().create();
@@ -321,6 +346,80 @@ public class Rails extends CoreApplication{
             modelBuf = MemoryUtil.memAllocFloat(16);
             uniformBuf = MemoryUtil.memAlloc(16 * 4);
             cameraPosBuffer = MemoryUtil.memAllocFloat(4);
+
+            long flags =
+                      BGFX_TEXTURE_RT
+                    | BGFX_SAMPLER_MIN_POINT
+                    | BGFX_SAMPLER_MAG_POINT
+                    | BGFX_SAMPLER_MIP_POINT
+                    | BGFX_SAMPLER_U_CLAMP
+                    | BGFX_SAMPLER_V_CLAMP;
+
+            // Create cubemap shader
+            cubeMapShader = new CubemapShader().create();
+
+            // Create empty textures for cubemap -- objects can use these textures to draw the contents of the fb
+/*
+            for (int i = 0; i< cubemapTextures.length; i++)
+                cubemapTextures[i] = bgfx_create_texture_2d(512,512,false,1,BGFX_TEXTURE_FORMAT_BGRA8,flags,null);
+*/
+
+
+            cubeMapTex = bgfx_create_texture_cube(512,false,6,BGFX_TEXTURE_FORMAT_BGRA8,flags,null); //new
+
+            for (short i = 0; i < cubeMapFBs.length; i++){
+                BGFXAttachment at = BGFXAttachment.create();
+
+                bgfx_attachment_init(at,cubeMapTex,BGFX_ACCESS_READWRITE,i,1,1,BGFX_RESOLVE_NONE);
+                BGFXAttachment.Buffer atBuff = BGFXAttachment.create(1024);
+                //atBuff.put(at);
+                atBuff.handle(cubeMapTex).access(BGFX_ACCESS_READWRITE).layer((short) 0);
+                atBuff.flip();
+
+                cubeMapFBs[i] = bgfx_create_frame_buffer_from_attachment(atBuff,true);
+                //cubeMapFBs[i] = bgfx_create_frame_buffer_from_handles(new short[cubeMapTex], true);
+
+            }
+
+            // Create framebuffer with reference to textures
+            //cubeMapFB = bgfx_create_frame_buffer_from_handles(cubemapTextures,true);
+
+            // Create a transformation for camera looking at each of cubes faces
+            for (int i = 0; i < cubeCaptureViews.length; i++){
+                cubeCaptureViews[i] = new Matrix4x3f();
+            }
+            Vector3f eye = new Vector3f(3.0f,3.0f,3.0f);
+            cubeCaptureViews[0].setLookAtLH(eye,new Vector3f(-5.0f,  0.0f,  2.0f),new Vector3f(0.0f, 1.0f,  0.0f));
+            cubeCaptureViews[1].setLookAtLH(eye,new Vector3f(-1.0f,  0.0f,  0.0f),new Vector3f(0.0f, -1.0f,  0.0f));
+            cubeCaptureViews[2].setLookAtLH(eye,new Vector3f(0.0f,  1.0f,  0.0f),new Vector3f(0.0f,  0.0f,  1.0f));
+            cubeCaptureViews[3].setLookAtLH(eye,new Vector3f( 0.0f, -1.0f,  0.0f),new Vector3f(0.0f,  0.0f, -1.0f));
+            cubeCaptureViews[4].setLookAtLH(eye,new Vector3f(0.0f,  0.0f,  1.0f),new Vector3f(0.0f, -1.0f,  0.0f));
+            cubeCaptureViews[5].setLookAtLH(eye,new Vector3f(0.0f,  0.0f, -1.0f),new Vector3f(0.0f, -1.0f,  0.0f));
+            Camera cubeCam = new Camera(new Vector3f(0.0f,0.0f,0.0f),new Vector3f(0.0f,1.0f,0.0f));
+
+            // Set projection
+            BgfxUtilities.perspective(90.0f, 512, 512, 0.1f, 100.0f, proj);
+
+
+            // Setup the fb view
+            bgfx_set_view_rect(Renderer.RENDER_PASS_ENV_MAP,0,0,512,512);
+            bgfx_set_view_frame_buffer(Renderer.RENDER_PASS_ENV_MAP,cubeMapFBs[0]);
+
+            bgfx_set_view_transform(Renderer.RENDER_PASS_ENV_MAP, cubeCam.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
+
+            // clear fb
+            bgfx_set_view_clear(Renderer.RENDER_PASS_ENV_MAP,BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,0xF94552ff, 1.0f,0);
+            bgfx_touch(Renderer.RENDER_PASS_ENV_MAP);
+
+            //render
+            long encoder = bgfx_encoder_begin(false);
+            //bgfx_encoder_set_transform(encoder, model.get4x4(modelBuf));
+            testMesh.draw(encoder,testShader,0);
+            bgfx_encoder_end(encoder);
+            bgfx_frame(false);
+            skybox = new SkyboxShader().create();
+
+
         }
         catch (Exception e){
             LOGGER.error(e.getMessage());

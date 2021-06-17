@@ -37,8 +37,8 @@ public class Mesh implements Serializable {
     private VertexType[] vertexLayout;
     private BGFXVertexLayout layout;
 
-    private transient short vbh;
-    private transient short ibh;
+    public transient short vbh;
+    public transient short ibh;
     private transient Texture[] textures;
 
 
@@ -97,7 +97,7 @@ public class Mesh implements Serializable {
         return this;
     }
 
-    public void draw(long encoder, Shader shader){ // encoder already has some information from higher level (camera position, view matrix etc)
+    public void draw(long encoder, Shader shader, int view){ // encoder already has some information from higher level (camera position, view matrix etc)
         // set vertex and index buffers
         bgfx_encoder_set_vertex_buffer(encoder,0,vbh,0,vertices.length);
         bgfx_encoder_set_index_buffer(encoder,ibh,0,indices.length);
@@ -111,7 +111,7 @@ public class Mesh implements Serializable {
 
         // Submit with shader
         bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0);
-        bgfx_encoder_submit(encoder, 0, shader.id(), 0, 0);
+        bgfx_encoder_submit(encoder, view, shader.id(), 0, 0);
 
         //bgfx_encoder_discard(encoder, BGFX_DISCARD_VERTEX_STREAMS | BGFX_DISCARD_INDEX_BUFFER | BGFX_DISCARD_BINDINGS);
     }

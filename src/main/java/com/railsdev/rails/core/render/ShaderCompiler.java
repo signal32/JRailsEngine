@@ -3,6 +3,9 @@ package com.railsdev.rails.core.render;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -81,5 +84,16 @@ public class ShaderCompiler {
         }catch (Exception e){
             System.out.println("An error occurred converting shaders.");
         }
+    }
+
+    public static void main(String[] args) {
+
+        LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+        Configuration logConfig = ctx.getConfiguration();
+        LoggerConfig loggerConfig = logConfig.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+        loggerConfig.setLevel(Level.ALL);
+        ctx.updateLoggers();  // This causes all Loggers to refetch information from their LoggerConfig.
+
+        ShaderCompiler.compile("dev/shaders/src", "spirv");
     }
 }

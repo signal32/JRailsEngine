@@ -235,6 +235,7 @@ public class BgfxUtilities {
         BGFXMemory textureMemory = bgfx_make_ref_release(textureData, releaseMemoryCb, NULL);
 
         short id = bgfx_create_texture(textureMemory, BGFX_TEXTURE_NONE, 0, null);
+        //for hdr images BGFX_TEXTURE_FORMAT_RGBA16F
 
         if (id == -1)
             throw new IOException("bgfx_create_texture failed (-1)");

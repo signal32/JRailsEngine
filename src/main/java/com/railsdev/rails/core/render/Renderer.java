@@ -11,6 +11,9 @@ import static org.lwjgl.system.MemoryStack.*;
 
 public class Renderer {
 
+    public static final int RENDER_PASS_ENV_MAP    = 0;
+    public static final int RENDER_PASS_SCENE      = 1;
+
     public static class Config{
          public long nativeWindowHandle;
          public int width = 800;
@@ -31,7 +34,7 @@ public class Renderer {
     public void init(Config config){
         BGFXInit init = BGFXInit.mallocStack(stack);
         bgfx_init_ctor(init);
-        init.resolution(it -> it.width(config.width).height(config.height).reset(BGFX_RESET_NONE));
+        init.resolution(it -> it.width(config.width).height(config.height).reset(BGFX_RESET_MSAA_X16));
         init.type(BGFX_RENDERER_TYPE_VULKAN);
 
         init.platformData().nwh(config.nativeWindowHandle);
@@ -49,10 +52,10 @@ public class Renderer {
         LOGGER.info("Renderer started. Using {} subsystem", () -> bgfx_get_renderer_name(renderer));
 
         bgfx_set_debug(BGFX_DEBUG_TEXT);
-        bgfx_set_view_clear(0,BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,0x303030ff, 1.0f,0);
-        bgfx_set_view_rect(0,0,0,config.width,config.height);
+        bgfx_set_view_clear(RENDER_PASS_SCENE,BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,0x303030ff, 1.0f,0);
+        bgfx_set_view_rect(RENDER_PASS_SCENE,0,0,config.width,config.height);
 
-        bgfx_touch(0);
+        bgfx_touch(RENDER_PASS_SCENE);
 
     }
 

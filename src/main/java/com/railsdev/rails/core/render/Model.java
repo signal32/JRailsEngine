@@ -73,7 +73,7 @@ public class Model implements Serializable {
      */
     public void draw(long encoder, Shader shader){
         for (Mesh m : meshes){
-            m.draw(encoder,shader);
+            m.draw(encoder,shader,1);//TODO fix view parameter
         }
     }
 
