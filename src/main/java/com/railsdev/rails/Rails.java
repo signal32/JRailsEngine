@@ -358,27 +358,22 @@ public class Rails extends CoreApplication{
             // Create cubemap shader
             cubeMapShader = new CubemapShader().create();
 
-            // Create empty textures for cubemap -- objects can use these textures to draw the contents of the fb
-/*
-            for (int i = 0; i< cubemapTextures.length; i++)
-                cubemapTextures[i] = bgfx_create_texture_2d(512,512,false,1,BGFX_TEXTURE_FORMAT_BGRA8,flags,null);
-*/
+            // Create empty cubemap texture -- objects can use these textures to draw the contents of the fb
+            cubeMapTex = bgfx_create_texture_cube(512,false,1, BGFX_TEXTURE_FORMAT_BGRA8, BGFX_TEXTURE_RT,null);
 
-
-            cubeMapTex = bgfx_create_texture_cube(512,false,6,BGFX_TEXTURE_FORMAT_BGRA8,flags,null); //new
-
+            // Load cubemap textures LOOP APPEARS TO WORK DONT CHANGE!
             for (short i = 0; i < cubeMapFBs.length; i++){
                 BGFXAttachment at = BGFXAttachment.create();
+                bgfx_attachment_init(at, cubeMapTex, BGFX_ACCESS_WRITE, i,1,0, BGFX_RESOLVE_AUTO_GEN_MIPS);
+                //cubeMapFBs[i] = bgfx_create_frame_buffer_from_attachment(at, false);
 
-                bgfx_attachment_init(at,cubeMapTex,BGFX_ACCESS_READWRITE,i,1,1,BGFX_RESOLVE_NONE);
-                BGFXAttachment.Buffer atBuff = BGFXAttachment.create(1024);
-                //atBuff.put(at);
-                atBuff.handle(cubeMapTex).access(BGFX_ACCESS_READWRITE).layer((short) 0);
+                BGFXAttachment.Buffer atBuff = BGFXAttachment.create(512); //arbitrary size
+                atBuff.put(at);
+                //atBuff.handle(cubeMapTex).access(BGFX_ACCESS_READWRITE).layer((short) 0);
                 atBuff.flip();
 
                 cubeMapFBs[i] = bgfx_create_frame_buffer_from_attachment(atBuff,true);
                 //cubeMapFBs[i] = bgfx_create_frame_buffer_from_handles(new short[cubeMapTex], true);
-
             }
 
             // Create framebuffer with reference to textures
