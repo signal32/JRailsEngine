@@ -255,7 +255,7 @@ public class BgfxUtilities {
     }
 
     public static void lookAt(Vector3f at, Vector3f eye, Matrix4x3f dest) {
-        dest.setLookAtLH(eye.x, eye.y, eye.z, at.x, at.y, at.z, 0.0f, 1.0f, 0.0f);
+        dest.setLookAt(eye.x, eye.y, eye.z, at.x, at.y, at.z, 0.0f, 1.0f, 0.0f);
     }
 
     public static void perspective(float fov, int width, int height, float near, float far, Matrix4f dest) {

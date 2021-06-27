@@ -8,7 +8,7 @@ import static org.joml.Math.toRadians;
 
 public class Camera {
 
-    private static final float[] UP_VEC = {0.0f,1.0f,0.0f};
+    private static final float[] UP_VEC = {0.0f,-1.0f,0.0f};
 
     // interface
     public final Vector3f eyePos;
@@ -63,7 +63,7 @@ public class Camera {
      * @return same as dest
      */
     public Matrix4x3f getViewMatrix(Matrix4x3f dest){
-        return dest.setLookAtLH(eyePos, atPos, localUp);
+        return dest.setLookAtLH(eyePos, atPos, worldUp);
     }
 
     public void lookAt(Vector3f at){
