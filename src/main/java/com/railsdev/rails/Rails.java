@@ -15,6 +15,7 @@ import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.lwjgl.bgfx.BGFXAttachment;
 import org.lwjgl.bgfx.BGFXReleaseFunctionCallback;
@@ -90,6 +91,8 @@ public class Rails extends CoreApplication{
     Shader debugShader;
 
     Shader skybox;
+
+    boolean showSkybox = false;
 
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
@@ -217,16 +220,20 @@ public class Rails extends CoreApplication{
         uniformBuf.flip();
         bgfx_encoder_set_uniform(encoder, uniformLightColours, uniformBuf, 4);
 
+
         bgfx_encoder_set_vertex_buffer(encoder,0,testMesh.vbh,0,36);
         bgfx_encoder_set_index_buffer(encoder,testMesh.ibh,0,36);
         bgfx_encoder_set_texture(encoder,0,skybox.getUniform(0),cubeMapTex, BGFX_SAMPLER_UVW_MIRROR);
         bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT | BGFX_STATE_CULL_CCW, 0);
-        bgfx_encoder_submit(encoder, Renderer.RENDER_PASS_SCENE, skybox.id(), 0, 0);
-
+        if (showSkybox) {
+            bgfx_encoder_submit(encoder, Renderer.RENDER_PASS_SCENE, skybox.id(), 0, 0);
+        }
 
         //testMesh.draw(encoder,testShader,Renderer.RENDER_PASS_SCENE);
         //testMesh2.draw(encoder,testShader2);
-        testModel.draw(encoder,debugShader);
+
+            testModel.draw(encoder, debugShader);
+
 
         bgfx_encoder_end(encoder);
 
@@ -293,6 +300,9 @@ public class Rails extends CoreApplication{
             debugCameraObject.eyePos.x = 0;
             debugCameraObject.eyePos.y = 0;
             debugCameraObject.eyePos.z = 0;
+        }
+        if(glfwGetKey(this.mainWindow.id(),GLFW_KEY_T) == GLFW_PRESS) {
+            showSkybox = !showSkybox;
         }
 
 
@@ -381,31 +391,20 @@ public class Rails extends CoreApplication{
                     { 0.0f, 0.0f,-1.0f}
             };
             Camera cubeCam = new Camera(new Vector3f(0.0f,0.0f,0.0f));
-            cubeCam.atPos.set(new Vector3f(0.0f,  1.0f, 1.0f));
+            //cubeCam.lookAt(new Vector3f(cubeMapSides[3]));
 
             // Set projection
             BgfxUtilities.perspective(90.0f, 512, 512, 0.1f, 100.0f, proj);
-
-
-            // Setup the fb view
-            //bgfx_set_view_rect(Renderer.RENDER_PASS_ENV_MAP,0,0,512,512);
-            //bgfx_set_view_frame_buffer(Renderer.RENDER_PASS_ENV_MAP,cubeMapFBs[0]);
-
-            //bgfx_set_view_transform(Renderer.RENDER_PASS_ENV_MAP, cubeCam.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
-
-            // clear fb
-            //bgfx_set_view_clear(Renderer.RENDER_PASS_ENV_MAP,BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,0xF94552ff, 1.0f,0);
-            //bgfx_touch(Renderer.RENDER_PASS_ENV_MAP);
 
 
             // Setup renderer
             //bgfx_set_view_rect(Renderer.RENDER_PASS_ENV_MAP,0,0,512,512);
             long encoder = bgfx_encoder_begin(false);
 
+            //int i = 3;
             for (int i = 0; i < 6; i++){
                 // Set camera to cubes side
-                cubeCam.atPos.set(cubeMapSides[i]);
-                cubeCam.updateVectors();
+                cubeCam.lookAt(new Vector3f(cubeMapSides[i]));
 
                 // Get view matrix from camera
                 bgfx_set_view_transform(Renderer.RENDER_PASS_ENV_MAP[i], cubeCam.getViewMatrix(view).get4x4(viewBuf), proj.get(projBuf));
@@ -416,8 +415,8 @@ public class Rails extends CoreApplication{
 
 
                 // clear fb (do we need this?)
-                bgfx_set_view_clear(Renderer.RENDER_PASS_ENV_MAP[i],BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,0xF94552ff, 1.0f,0);
-                bgfx_touch(Renderer.RENDER_PASS_ENV_MAP[i]);
+                bgfx_set_view_clear(Renderer.RENDER_PASS_ENV_MAP[i],BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,0xF94552ff, 10.0f,0);
+                //bgfx_touch(Renderer.RENDER_PASS_ENV_MAP[i]);
 
                 //render
                 //bgfx_encoder_set_transform(encoder, model.get4x4(modelBuf));

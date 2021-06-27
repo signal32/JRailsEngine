@@ -66,6 +66,14 @@ public class Camera {
         return dest.setLookAtLH(eyePos, atPos, localUp);
     }
 
+    public void lookAt(Vector3f at){
+        yaw = (float) toDegrees(front.angleSigned(at, right));
+        pitch = (float) - toDegrees(front.angleSigned(at, worldUp));
+        System.out.println(yaw);
+        //System.out.println(pitch);
+        updateVectors();
+    }
+
     public void updateVectors(){
 
         // Calculate new front vector
@@ -81,5 +89,15 @@ public class Camera {
         localUp = localUp.cross(front).normalize();
         atPos.set(eyePos);
         atPos.add(front);
+    }
+
+    @Override
+    public String toString() {
+        return "Camera{" +
+                "eyePos=" + eyePos +
+                ", atPos=" + atPos +
+                ", yaw=" + yaw +
+                ", pitch=" + pitch +
+                '}';
     }
 }
