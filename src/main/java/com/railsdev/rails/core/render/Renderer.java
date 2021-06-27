@@ -11,7 +11,7 @@ import static org.lwjgl.system.MemoryStack.*;
 
 public class Renderer {
 
-    public static final int RENDER_PASS_ENV_MAP    = 0;
+    public static final int[] RENDER_PASS_ENV_MAP    = {3,4,5,6,7,8};
     public static final int RENDER_PASS_SCENE      = 1;
 
     public static class Config{
