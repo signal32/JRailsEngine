@@ -29,9 +29,9 @@ public class DebugCamera extends Camera {
                 eyePos.add(front.mul(velocity)); break;
             case BACKWARD:
                 eyePos.sub(front.mul(velocity)); break;
-            case RIGHT:
-                eyePos.sub(right.mul(velocity)); break;
             case LEFT:
+                eyePos.sub(right.mul(velocity)); break;
+            case RIGHT:
                 eyePos.add(right.mul(velocity)); break;
         }
         updateVectors();
