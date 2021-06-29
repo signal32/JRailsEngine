@@ -92,7 +92,7 @@ public class Rails extends CoreApplication{
 
     Shader skybox;
 
-    boolean showSkybox = false;
+    boolean showSkybox = true;
 
     private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
@@ -383,12 +383,12 @@ public class Rails extends CoreApplication{
             // Create a transformation for camera looking at each of cubes faces
 
             float[][] cubeMapSides = {
-                    { 1.0f, 0.0f, 0.0f},
-                    {-1.0f, 0.0f, 0.0f},
-                    { 0.0f, 1.0f, 0.0f},
-                    { 0.0f,-1.0f, 0.0f},
-                    { 0.0f, 0.0f, 1.0f},
-                    { 0.0f, 0.0f,-1.0f}
+                    { 0.0f, 1.0f, 0.0f}, //L
+                    { 0.0f,-1.0f, 0.0f}, //R
+                    { 1.0f, 0.0f, 0.0f}, //D
+                    { 0.0f, 0.0f, 1.0f}, //U
+                    {-0.0f, 0.0f, 0.0f}, //Back
+                    { 0.0f, 0.0f, 0.0f}  //Front
             };
             Camera cubeCam = new Camera(new Vector3f(0.0f,0.0f,0.0f));
             //cubeCam.lookAt(new Vector3f(cubeMapSides[3]));
@@ -401,7 +401,6 @@ public class Rails extends CoreApplication{
             //bgfx_set_view_rect(Renderer.RENDER_PASS_ENV_MAP,0,0,512,512);
             long encoder = bgfx_encoder_begin(false);
 
-            //int i = 3;
             for (int i = 0; i < 6; i++){
                 // Set camera to cubes side
                 cubeCam.lookAt(new Vector3f(cubeMapSides[i]));
@@ -423,17 +422,6 @@ public class Rails extends CoreApplication{
                 testMesh.draw(encoder,testShader,Renderer.RENDER_PASS_ENV_MAP[i]);
 
             }
-
-            // test
-
- /*           int[] colour = {0xEB1677ff,0xF91552ff,0xF94552ff,0xF94782ff,0xF94556ff,0xF94543ff};
-
-            for (int i = 0; i < cubeMapFBs.length; i++){
-                bgfx_set_view_frame_buffer(i+2,cubeMapFBs[i]);
-                bgfx_set_view_clear(i+2, BGFX_CLEAR_COLOR, colour[i],0,0);
-                bgfx_set_view_rect(i+2,0,0,512,512);
-                bgfx_touch(i+2);
-            }*/
 
             bgfx_encoder_end(encoder);
 
