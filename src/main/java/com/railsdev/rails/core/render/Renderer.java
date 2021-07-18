@@ -1,7 +1,5 @@
 package com.railsdev.rails.core.render;
 
-import com.railsdev.rails.Rails;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.bgfx.*;
@@ -21,7 +19,7 @@ public class Renderer {
          public String type = "vulkan";
     }
 
-    private static Logger LOGGER = LogManager.getLogger(Renderer.class);
+    private static final Logger LOGGER = LogManager.getLogger(Renderer.class);
 
     protected int renderer = BGFX_RENDERER_TYPE_COUNT;
 

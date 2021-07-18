@@ -15,7 +15,6 @@ import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.lwjgl.bgfx.BGFXAttachment;
 import org.lwjgl.bgfx.BGFXReleaseFunctionCallback;
@@ -229,8 +228,8 @@ public class Rails extends CoreApplication{
             bgfx_encoder_submit(encoder, Renderer.RENDER_PASS_SCENE, skybox.id(), 0, 0);
         }
 
-        //testMesh.draw(encoder,testShader,Renderer.RENDER_PASS_SCENE);
-        //testMesh2.draw(encoder,testShader2);
+        testMesh.draw(encoder,testShader,Renderer.RENDER_PASS_SCENE);
+        testMesh2.draw(encoder,testShader2, Renderer.RENDER_PASS_SCENE);
 
         testModel.draw(encoder, debugShader);
 
@@ -328,6 +327,7 @@ public class Rails extends CoreApplication{
 
             //testModel = Model.fromFile("dev/samples/model/SkiLiftGround_Tower.obj");
             testModel = Model.fromFile("dev/samples/cubeMaped.obj");
+            testModel.modelMatrix.scale(0.3f).translate(0,-0.5f, 0.5f);
             //testMesh2 = testModel.meshes[1];
             //testMesh = new DebugCube().create();
 
@@ -339,7 +339,7 @@ public class Rails extends CoreApplication{
             testMesh = new DebugCubeTex("cubemap/cubemap.dds").create();
             testShader = new CubemapShader().create();
 
-                //testMesh2 = new DebugCubeTex(textures).create();
+            testMesh2 = new DebugCubeTex(textures).create();
             testShader2 = new PhysicallyBasedShader().create();
 
             debugCameraObject = new DebugCamera(new Vector3f(0.0f,0.0f,3.0f),new Vector3f(0.0f,1.0f,0.0f));

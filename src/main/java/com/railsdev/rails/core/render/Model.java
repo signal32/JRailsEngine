@@ -46,7 +46,7 @@ public class Model implements Serializable {
 
     public  Mesh[]      meshes;
     public  Matrix4x3f  modelMatrix;    // Model transformation matrix -- Transformation of object relative to world space
-    private FloatBuffer modelMatrixBuf;
+    private final transient FloatBuffer modelMatrixBuf;
 
     //----------------------------------------------------------//
     //                  OBJECT INTERFACE                        //
@@ -59,7 +59,7 @@ public class Model implements Serializable {
      */
     public Model(Mesh... meshes) {
         this.meshes = meshes;
-        this.modelMatrix = new Matrix4x3f().scale(1.0f,2.0f,1.0f).rotateZ(45);
+        this.modelMatrix = new Matrix4x3f();
         this.modelMatrixBuf = MemoryUtil.memAllocFloat(16);
     }
 
