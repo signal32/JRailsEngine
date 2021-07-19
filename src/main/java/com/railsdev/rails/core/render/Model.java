@@ -80,13 +80,13 @@ public class Model implements Serializable {
      * @param encoder Encoder ID to use
      * @param shader Shader to use
      */
-    public void draw(long encoder, Shader shader){
+    public void draw(long encoder,int view, Shader shader){
 
         // Set model world position
-        bgfx_encoder_set_transform(encoder, modelMatrix.get4x4(modelMatrixBuf));
+        //bgfx_encoder_set_transform(encoder, modelMatrix.get4x4(modelMatrixBuf));
 
         for (Mesh m : meshes){
-            m.draw(encoder,shader,1);//TODO fix view parameter
+            m.draw(encoder,shader,view);//TODO fix view parameter
         }
     }
 

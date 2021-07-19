@@ -22,7 +22,6 @@ public class Renderer {
     private static final Logger LOGGER = LogManager.getLogger(Renderer.class);
 
     protected int renderer = BGFX_RENDERER_TYPE_COUNT;
-
     MemoryStack stack;
 
     public Renderer(){

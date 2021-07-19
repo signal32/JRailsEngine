@@ -231,7 +231,7 @@ public class Rails extends CoreApplication{
         testMesh.draw(encoder,testShader,Renderer.RENDER_PASS_SCENE);
         testMesh2.draw(encoder,testShader2, Renderer.RENDER_PASS_SCENE);
 
-        testModel.draw(encoder, debugShader);
+        testModel.draw(encoder,1, debugShader);
 
 
         bgfx_encoder_end(encoder);
