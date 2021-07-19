@@ -1,4 +1,5 @@
 # Rails
+[![Java CI with Maven](https://github.com/signal32/RailsEngine/actions/workflows/maven.yml/badge.svg)](https://github.com/signal32/RailsEngine/actions/workflows/maven.yml)
 
 Java based Game Engine / Framework.
 
