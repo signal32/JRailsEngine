@@ -58,5 +58,6 @@ public class DesktopContext implements Context {
         for (Window w : windows){
             glfwDestroyWindow(w.id());
         }
+        glfwTerminate();
     }
 }

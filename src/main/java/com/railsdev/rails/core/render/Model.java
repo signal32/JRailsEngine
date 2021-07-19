@@ -3,14 +3,19 @@ package com.railsdev.rails.core.render;
 import com.railsdev.rails.core.render.shaders.Shader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joml.Matrix4x3f;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.*;
+import org.lwjgl.system.MemoryUtil;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.lwjgl.bgfx.BGFX.*;
 
 import static org.lwjgl.assimp.Assimp.*;
 
@@ -39,7 +44,9 @@ public class Model implements Serializable {
     //                  MEMBERS                                 //
     //----------------------------------------------------------//
 
-    public Mesh[] meshes;
+    public  Mesh[]      meshes;
+    public  Matrix4x3f  modelMatrix;    // Model transformation matrix -- Transformation of object relative to world space
+    private final transient FloatBuffer modelMatrixBuf;
 
     //----------------------------------------------------------//
     //                  OBJECT INTERFACE                        //
@@ -52,6 +59,8 @@ public class Model implements Serializable {
      */
     public Model(Mesh... meshes) {
         this.meshes = meshes;
+        this.modelMatrix = new Matrix4x3f();
+        this.modelMatrixBuf = MemoryUtil.memAllocFloat(16);
     }
 
     /**
@@ -71,9 +80,13 @@ public class Model implements Serializable {
      * @param encoder Encoder ID to use
      * @param shader Shader to use
      */
-    public void draw(long encoder, Shader shader){
+    public void draw(long encoder,int view, Shader shader){
+
+        // Set model world position
+        //bgfx_encoder_set_transform(encoder, modelMatrix.get4x4(modelMatrixBuf));
+
         for (Mesh m : meshes){
-            m.draw(encoder,shader);
+            m.draw(encoder,shader,view);//TODO fix view parameter
         }
     }
 

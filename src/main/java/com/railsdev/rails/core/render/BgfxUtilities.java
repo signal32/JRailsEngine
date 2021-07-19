@@ -235,6 +235,7 @@ public class BgfxUtilities {
         BGFXMemory textureMemory = bgfx_make_ref_release(textureData, releaseMemoryCb, NULL);
 
         short id = bgfx_create_texture(textureMemory, BGFX_TEXTURE_NONE, 0, null);
+        //for hdr images BGFX_TEXTURE_FORMAT_RGBA16F
 
         if (id == -1)
             throw new IOException("bgfx_create_texture failed (-1)");
@@ -254,7 +255,7 @@ public class BgfxUtilities {
     }
 
     public static void lookAt(Vector3f at, Vector3f eye, Matrix4x3f dest) {
-        dest.setLookAtLH(eye.x, eye.y, eye.z, at.x, at.y, at.z, 0.0f, 1.0f, 0.0f);
+        dest.setLookAt(eye.x, eye.y, eye.z, at.x, at.y, at.z, 0.0f, 1.0f, 0.0f);
     }
 
     public static void perspective(float fov, int width, int height, float near, float far, Matrix4f dest) {

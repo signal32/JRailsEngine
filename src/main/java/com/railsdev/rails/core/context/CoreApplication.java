@@ -5,16 +5,14 @@ import com.railsdev.rails.core.utils.Sync;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import static org.lwjgl.bgfx.BGFX.*;
 import static org.lwjgl.glfw.GLFW.*;
-import static java.lang.System.currentTimeMillis;
 import static java.lang.System.nanoTime;
 
 public abstract class CoreApplication implements Application {
 
     private static final Logger LOGGER = LogManager.getLogger(CoreApplication.class);
 
-    private static final int    TARGET_FRAMERATE    = 5;
+    private static final int    TARGET_FRAMERATE    = 60;
     private static final double UNITS               = 100_000_000; //ns
     private static final long   UPDATES_PER_SECOND  = 25;
     private static final double FRAMETIME           = UNITS/UPDATES_PER_SECOND;
@@ -61,52 +59,22 @@ public abstract class CoreApplication implements Application {
 
         LOGGER.info("Initialisation completed");
 
-
-        // Prepare application loop
-        long timeStart = System.currentTimeMillis();
-        double accumulator = FRAMETIME;
-        double delta = 1.0/60.0;
-
-        LOGGER.debug("Starting application loop: frametime={} deta={}",FRAMETIME,delta);
-
+        // Enter loop
         this.loop();
 
-        // Enter loop
-        while(!glfwWindowShouldClose(mainWindow.id())){
-
-            // Get inputs
-            context.update();
-
-            while(accumulator >= delta){
-
-                update(delta);
-                accumulator -= delta;
-            }
-
-
-            renderer.update(0);
-            renderer.pushDebugText(100,1,String.format("time % 7.3f",delta));
-            drawStart(delta);
-
-            long timeEnd = System.currentTimeMillis();
-            delta = (timeEnd - timeStart)/1000000.0;
-            accumulator += delta;
-            timeStart = timeEnd;
-        }
-
-
+        LOGGER.info("Exiting...");
 
         shutdown(this);
         destroy();
+        LOGGER.info("Application terminated");
 
     }
 
     @Override
     public void destroy() {
-        bgfx_shutdown();
-        //glfwDestroyWindow(window);
+        renderer.shutdown();
         context.shutdown();
-        glfwTerminate();
+        LOGGER.info("Systems shutdown");
     }
 
     @Override
@@ -119,6 +87,7 @@ public abstract class CoreApplication implements Application {
     public abstract void init(Application application);
 
     private void loop(){
+        LOGGER.debug("Starting application main loop: Target update interval = {}/s. Target render interval = {}/s. Frametime ~ {}ns",UPDATES_PER_SECOND,TARGET_FRAMERATE, FRAMETIME);
         double previous = nanoTime();
         double lag = 0.0f;
 
