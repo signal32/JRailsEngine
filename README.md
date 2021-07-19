@@ -1,5 +1,11 @@
 # Rails
 
+Java based Game Engine / Framework.
+
+### Key Features
+- Vulkan, Metal, DirectX and OpenGL rendering backends via BGFX.
+- Floating Origin implementation for large virtual world support
+
 ## Notes
 
 ### Shader Compilation
