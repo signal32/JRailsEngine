@@ -58,6 +58,20 @@
                     <!-- <excludes> <exclude>**/*RunCukesTest.java</exclude> </excludes> -->
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.0</version>
+                <configuration>
+                    <!-- <testClassesDirectory>s360UIAutomationCC/src/main/java</testClassesDirectory> -->
+                    <testSourceDirectory>src/test/java/</testSourceDirectory>
+                    <includes>
+                        <include>**/*MOP_Run_All.java</include>
+                    </includes>
+                    <!-- <excludes> <exclude>**/*RunCukesTest.java</exclude> </excludes> -->
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
