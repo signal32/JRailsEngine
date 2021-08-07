@@ -1,36 +1,41 @@
 package com.railsdev.rails.core.scene;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4x3f;
 
-abstract public class AbstractNode {
-
-    private static final Logger LOGGER = LogManager.getLogger(AbstractNode.class);
-
-    private static final Matrix4x3f IDENTITY = new Matrix4x3f();
+/**
+ * Base Node that provides API for iterating spacial partitioning trees.
+ * @author Hamish Weir
+ */
+public abstract class AbstractNode {
 
     protected AbstractNode  parent;
-    protected Matrix4x3f    worldTransform;     //to be cached from calculation i think
-    protected Matrix4x3f    localTransform;     //relative to parent
     protected boolean       transformChanged;
 
-    public AbstractNode(Matrix4x3f localTransform, @Nullable AbstractNode parent) {
-        this.localTransform = localTransform;
+
+    protected AbstractNode(@Nullable AbstractNode parent) {
         this.parent = parent;
-        this.worldTransform = new Matrix4x3f();
         this.transformChanged = true;
     }
 
-    public void update(){
-        if (transformChanged){
-             updateWorldTransform();
-        }
+    /**
+     * @return Direct parent of this node
+     */
+    public AbstractNode getParent(){
+        return this.parent;
     }
 
-    protected void updateWorldTransform(){
-        worldTransform.set( (parent != null) ? parent.worldTransform : IDENTITY);
-        worldTransform.mul(localTransform);
-    }
+    /**
+     * @return Direct descendants of this node
+     */
+    public abstract AbstractNode[] getChildren();
+
+    /**
+     * Get the position of this node in 3D space.
+     * @implNote position should be relative to parent (i.e. local transform)
+     * @param dest matrix to hold the result
+     * @return matrix with result
+     */
+    public abstract Matrix4x3f getTransform(Matrix4x3f dest);
+
 }

@@ -1,49 +1,55 @@
 package com.railsdev.rails.core.scene;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4x3f;
-import org.joml.Vector3f;
-import org.joml.Vector3fc;
+import org.joml.*;
 
+/**
+ * Quad-Tree Node implementation to perform spatial partitioning.
+ * @author Hamish Weir
+ */
 public class QuadNode extends AbstractNode {
-
-    private static final Logger LOGGER = LogManager.getLogger(QuadNode.class);
 
     private static final int MAX_SPATIALS = 10;
     private static final int MAX_CHILDREN = 4;
-    private static final Vector3fc ORIGIN = new Vector3f(0.0f,0.0f,0.0f);
-    public static final float MAX_SIZE = 100; //510064472;
 
-    private final SpatialNode[] spatials = new SpatialNode[MAX_SPATIALS];
-    private int                 spatialCount;
-    private QuadNode            ne, se, sw, nw;
-    private boolean             atomic;
+    private final QuadNode[]    quadrants           = new QuadNode[MAX_CHILDREN]; //NE = 0, SE = 1, NW = 2, SW = 3
+    private final SpatialNode[] spatials            = new SpatialNode[MAX_SPATIALS];
+    private int                 spatialCount        = 0;
+    private boolean             atomic              = true;
     private float               size;
+    private final Vector2fc     transform;
+    private int                 depth;
 
-    private final Vector3f vector3f = new Vector3f(); //Pre-allocated vector for math operations
-    public QuadNode(Matrix4x3f localTransform,@Nullable AbstractNode parent, float size) {
-        super(localTransform, parent);
-        spatialCount = 0;
-        atomic = true;
+    //Pre-allocated vector for math operations
+    private final Vector3f vec3 = new Vector3f();
+
+
+    protected QuadNode(@Nullable QuadNode parent, Vector2fc localTransform, float size, int depth) {
+        super(parent);
+        this.transform = localTransform;
         this.size = size;
+        this.depth = depth;
     }
+
+    public QuadNode(float size){
+        this(null, new Vector2f(), size,0);
+    }
+
 
     public void addSpatial(SpatialNode spatial){
 
+        spatial.parent = this;
+
+        // Atomic node has no children, add spatial as leaves
+        if (atomic)
+            spatials[spatialCount++] = spatial;
+
         // If children already exist, use them.
-        if (!atomic) {
+        else {
             addToQuad(spatial);
-            return;
-        }
 
-        // Otherwise, store in this node
-        spatials[spatialCount++] = spatial;
-
-        // And split if needed.
-        if (spatialCount >= MAX_SPATIALS){
-            split();
+            if (spatialCount >= MAX_SPATIALS)
+                split();
         }
     }
 
@@ -54,37 +60,43 @@ public class QuadNode extends AbstractNode {
     private void split(){
 
         // Create new sub-nodes
-        ne = new QuadNode(new Matrix4x3f().translate(size/2,size/2,0.0f),this, size/4);
-        se = new QuadNode(new Matrix4x3f().translate(-size/2,size/2,0.0f),this, size/4);
-        sw = new QuadNode(new Matrix4x3f().translate(-size/2,-size/2,0.0f),this, size/4);
-        nw = new QuadNode(new Matrix4x3f().translate(size/2,size/2,0.0f), this, size/4);
-
-        // This node is no longer atomic
-        atomic = false;
+        float newSize = size / 4;
+        quadrants[0] = new QuadNode(this,new Vector2f(  newSize,  newSize), newSize, depth++);
+        quadrants[1] = new QuadNode(this,new Vector2f(  newSize, -newSize), newSize, depth++);
+        quadrants[2] = new QuadNode(this,new Vector2f( -newSize,  newSize), newSize, depth++);
+        quadrants[3] = new QuadNode(this,new Vector2f( -newSize, -newSize), newSize, depth++);
 
         // Move spatials into sub-nodes
         for (SpatialNode spatial : spatials){
             addToQuad(spatial);
         }
+
+        // This node is no longer atomic
+        atomic = false;
+        spatialCount = 0;
     }
 
-    private QuadNode getQuad(Vector3fc transform){
-        float angle = transform.angle(ORIGIN);
+    private int getQuad(Vector3f transform){
 
-        if (angle < 90)
-            return ne;
-        else if (angle < 180)
-            return se;
-        else if (angle < 270)
-            return sw;
-        else
-            return nw;
+        if      (transform.x() >= 0 && transform.z() >= 0) return 0;
+        else if (transform.x() <= 0 && transform.z() >= 0) return 1;
+        else if (transform.x() >= 0 && transform.z() <= 0) return 2;
+        else return 3;
+
     }
 
     private void addToQuad(SpatialNode spatial){
-        QuadNode quad = getQuad(spatial.localTransform.getTranslation(vector3f));
-        quad.addSpatial(spatial);
+        int quad = getQuad(spatial.getTranslation(vec3));
+        quadrants[quad].addSpatial(spatial);
+    }
+
+    @Override
+    public AbstractNode[] getChildren() {
+        return quadrants;
+    }
+
+    @Override
+    public Matrix4x3f getTransform(Matrix4x3f dest) {
+        return dest.zero().translate(transform.x(), transform.y(), 0.0f);
     }
 }
-
-
