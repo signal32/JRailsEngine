@@ -2,6 +2,7 @@ package com.railsdev.rails.core.scene;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4x3f;
 
 abstract public class AbstractNode {
@@ -15,7 +16,7 @@ abstract public class AbstractNode {
     protected Matrix4x3f    localTransform;     //relative to parent
     protected boolean       transformChanged;
 
-    public AbstractNode(Matrix4x3f localTransform, AbstractNode parent) {
+    public AbstractNode(Matrix4x3f localTransform, @Nullable AbstractNode parent) {
         this.localTransform = localTransform;
         this.parent = parent;
         this.worldTransform = new Matrix4x3f();

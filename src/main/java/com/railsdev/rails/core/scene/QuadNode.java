@@ -2,6 +2,7 @@ package com.railsdev.rails.core.scene;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -13,20 +14,20 @@ public class QuadNode extends AbstractNode {
     private static final int MAX_SPATIALS = 10;
     private static final int MAX_CHILDREN = 4;
     private static final Vector3fc ORIGIN = new Vector3f(0.0f,0.0f,0.0f);
-    private static final int MAX_SIZE = 100;
+    public static final float MAX_SIZE = 100; //510064472;
 
-    private QuadNode        NE, SE, SW, NW;
-    private boolean         atomic;
-    private SpatialNode[]   spatials;
-    private int             spatialCount;
-    private float             size;
+    private final SpatialNode[] spatials = new SpatialNode[MAX_SPATIALS];
+    private int                 spatialCount;
+    private QuadNode            ne, se, sw, nw;
+    private boolean             atomic;
+    private float               size;
 
-    private Vector3f vector3f = new Vector3f(); //Pre-allocated vector for math operations
-    public QuadNode(Matrix4x3f localTransform, AbstractNode parent) {
+    private final Vector3f vector3f = new Vector3f(); //Pre-allocated vector for math operations
+    public QuadNode(Matrix4x3f localTransform,@Nullable AbstractNode parent, float size) {
         super(localTransform, parent);
-
-        spatials = new SpatialNode[MAX_CHILDREN];
         spatialCount = 0;
+        atomic = true;
+        this.size = size;
     }
 
     public void addSpatial(SpatialNode spatial){
@@ -38,7 +39,7 @@ public class QuadNode extends AbstractNode {
         }
 
         // Otherwise, store in this node
-        spatials[++spatialCount] = spatial;
+        spatials[spatialCount++] = spatial;
 
         // And split if needed.
         if (spatialCount >= MAX_SPATIALS){
@@ -46,13 +47,17 @@ public class QuadNode extends AbstractNode {
         }
     }
 
+    public SpatialNode[] getSpatials(){
+        return this.spatials;
+    }
+
     private void split(){
 
         // Create new sub-nodes
-        NE = new QuadNode(new Matrix4x3f().translate(size/2,size/2,0.0f),this);
-        SE = new QuadNode(new Matrix4x3f().translate(-size/2,size/2,0.0f),this);
-        SW = new QuadNode(new Matrix4x3f().translate(-size/2,-size/2,0.0f),this);
-        NW = new QuadNode(new Matrix4x3f().translate(size/2,size/2,0.0f), this);
+        ne = new QuadNode(new Matrix4x3f().translate(size/2,size/2,0.0f),this, size/4);
+        se = new QuadNode(new Matrix4x3f().translate(-size/2,size/2,0.0f),this, size/4);
+        sw = new QuadNode(new Matrix4x3f().translate(-size/2,-size/2,0.0f),this, size/4);
+        nw = new QuadNode(new Matrix4x3f().translate(size/2,size/2,0.0f), this, size/4);
 
         // This node is no longer atomic
         atomic = false;
@@ -67,13 +72,13 @@ public class QuadNode extends AbstractNode {
         float angle = transform.angle(ORIGIN);
 
         if (angle < 90)
-            return NE;
+            return ne;
         else if (angle < 180)
-            return SE;
+            return se;
         else if (angle < 270)
-            return SW;
+            return sw;
         else
-            return NW;
+            return nw;
     }
 
     private void addToQuad(SpatialNode spatial){
