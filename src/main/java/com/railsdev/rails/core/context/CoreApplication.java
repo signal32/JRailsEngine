@@ -25,8 +25,8 @@ public abstract class CoreApplication implements Application {
 
     private final Sync sync = new Sync();
 
-    protected CoreApplication() {
-        context = new DesktopContext();
+    protected CoreApplication(Context context) {
+        this.context = context;
         renderer = new Renderer();
     }
 
@@ -75,11 +75,6 @@ public abstract class CoreApplication implements Application {
         renderer.shutdown();
         context.shutdown();
         LOGGER.info("Systems shutdown");
-    }
-
-    @Override
-    public void run() {
-
     }
 
     public abstract void shutdown(Application application);

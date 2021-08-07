@@ -3,7 +3,9 @@ package com.railsdev.rails;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.railsdev.rails.core.context.Application;
+import com.railsdev.rails.core.context.Context;
 import com.railsdev.rails.core.context.CoreApplication;
+import com.railsdev.rails.core.context.DesktopContext;
 import com.railsdev.rails.core.render.*;
 import com.railsdev.rails.core.render.debug.DebugCubeTex;
 import com.railsdev.rails.core.render.shaders.*;
@@ -100,12 +102,16 @@ public class Rails extends CoreApplication{
     @Parameter(names = {"-log"})    private String log              ="debug";
     @Parameter(names = {"-render"}) private String renderString     ="vk";
 
+    protected Rails(Context context) {
+        super(context);
+    }
+
 
     public static void main(String[] args) {
 
         String[] argv = {"-log","warn","-render","vk"};
         JCommander.newBuilder()
-                .addObject(new Rails())
+                .addObject(new Rails(new DesktopContext()))
                 .build()
                 .parse(args);
 
@@ -128,7 +134,7 @@ public class Rails extends CoreApplication{
         config.renderer = "vulkan";
 
 
-        Rails rails = new Rails();
+        Rails rails = new Rails(new DesktopContext());
         rails.start(config);
     }
 

@@ -4,22 +4,21 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.*;
-import org.lwjgl.system.*;
 
 import java.io.IOException;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
-public class GLFWWindow implements Window{
+public class DesktopWindow implements Window{
 
-    private static final Logger LOGGER = LogManager.getLogger(GLFWWindow.class);
+    private static final Logger LOGGER = LogManager.getLogger(DesktopWindow.class);
 
     protected Config config;
     protected long nwh;
     protected long glfwID;
 
-    protected GLFWWindow(Config config) throws IOException {
+    protected DesktopWindow(Config config) throws IOException {
         this.config = config;
         this.nwh = -1;
 
@@ -52,13 +51,13 @@ public class GLFWWindow implements Window{
     }
 
     @Override
-    public void update(Config config) {
+    public void setConfig(Config config) {
         this.config = config;
         updateWindow();
     }
 
     @Override
-    public void update(String title) {
+    public void setTitle(String title) {
         this.config.title = title;
         updateWindow();
     }

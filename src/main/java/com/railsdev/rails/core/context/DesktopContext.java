@@ -17,12 +17,11 @@ public class DesktopContext implements Context {
 
     List<Window> windows = new ArrayList<>();
 
-    public DesktopContext() {
-    }
+    public DesktopContext() {}
 
     @Override
     public Window createWindow(Window.Config config) throws IOException {
-        Window window = new GLFWWindow(config);
+        Window window = new DesktopWindow(config);
         windows.add(window);
         return window;
     }

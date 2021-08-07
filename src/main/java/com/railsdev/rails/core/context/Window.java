@@ -15,8 +15,8 @@ public interface Window {
         public Type type;
     }
 
-    abstract void update(Config config);
-    void update(String title);
+    abstract void setConfig(Config config);
+    void setTitle(String title);
     Config config();
 
     /**

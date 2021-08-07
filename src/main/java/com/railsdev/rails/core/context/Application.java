@@ -5,7 +5,6 @@ public interface Application {
     public void start(Config config);
     public void destroy();
 
-    abstract void run();
     abstract void drawStart(double delta);
     abstract void drawEnd(double delta);
     abstract void update(double delta);
