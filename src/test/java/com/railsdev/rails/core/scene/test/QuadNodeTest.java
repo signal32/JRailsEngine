@@ -1,9 +1,11 @@
 package com.railsdev.rails.core.scene.test;
 
+import com.railsdev.rails.core.scene.AbstractNode;
 import com.railsdev.rails.core.scene.QuadNode;
 import com.railsdev.rails.core.scene.SpatialNode;
 import org.joml.Matrix4x3f;
 import org.joml.Random;
+import org.joml.Vector3f;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,7 @@ class QuadNodeTest {
     void CreateEmptyQuadNode(){
         QuadNode quadNode = new QuadNode(100);
 
-        assertNull(quadNode.getSpatials()[0]);
+        //assertNull(quadNode.getChildren()[0]);
     }
 
     @Test()
@@ -35,9 +37,12 @@ class QuadNodeTest {
     void addSpatial(){
         QuadNode quadNode = new QuadNode(100);
 
-        for (int i = 0; i < 25; i++) {
-            quadNode.addSpatial(new SpatialNode(new Matrix4x3f().translate(randomFloat(-100,100),randomFloat(-100,100),randomFloat(-100,100)),quadNode));
+        for (int i = 0; i < 30; i++) {
+            quadNode.push(new SpatialNode(new Matrix4x3f().translate(1,1,1),null));
         }
+
+        var stuff = quadNode.get(new Vector3f(0,1,1), new AbstractNode[50]);
+        //QuadNode newOne = QuadNode.createParent(quadNode, QuadNode.Quad.NE);
 
         assertTrue(true);
     }

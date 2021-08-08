@@ -6,25 +6,35 @@ import org.joml.Vector3f;
 public class SpatialNode extends AbstractNode {
 
     protected Matrix4x3f    localTransform;     //relative to parent
-    protected SpatialNode[] children;
 
     public SpatialNode(Matrix4x3f localTransform, AbstractNode parent) {
-        super(parent);
+        super(parent, localTransform.getTranslation(new Vector3f()));
         this.localTransform = localTransform;
     }
 
-    public Vector3f getTranslation(Vector3f dest){
-        return this.localTransform.getTranslation(dest);
+    @Override
+    public boolean push(AbstractNode node) {
+        return false;
     }
 
     @Override
-    public AbstractNode[] getChildren() {
-        return children;
-    }
-
-    @Override
-    public Matrix4x3f getTransform(Matrix4x3f dest) {
+    public Matrix4x3f getLocalTransform(Matrix4x3f dest) {
         return dest.set(localTransform);
+    }
+
+    @Override
+    public void drawEvent() {
+
+    }
+
+    @Override
+    public void updateEvent() {
+
+    }
+
+    @Override
+    public AbstractNode[] get(Vector3f location, AbstractNode[] dest) {
+        return new AbstractNode[0];
     }
 
     /*
