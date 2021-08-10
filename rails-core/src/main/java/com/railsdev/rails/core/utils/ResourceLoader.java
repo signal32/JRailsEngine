@@ -1,4 +1,4 @@
-package com.railsdev.rails;
+package com.railsdev.rails.core.utils;
 
 import java.io.BufferedInputStream;
 import java.io.File;

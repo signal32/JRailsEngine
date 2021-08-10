@@ -1,6 +1,6 @@
 package com.railsdev.rails.core.render;
 
-import com.railsdev.rails.ResourceLoader;
+import com.railsdev.rails.core.utils.ResourceLoader;
 import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
