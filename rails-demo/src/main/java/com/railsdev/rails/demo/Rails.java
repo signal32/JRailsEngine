@@ -1,4 +1,4 @@
-package com.railsdev.rails;
+package com.railsdev.rails.demo;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

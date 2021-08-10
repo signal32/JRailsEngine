@@ -11,6 +11,7 @@
 
     <modules>
         <module>rails-core</module>
+        <module>rails-demo</module>
     </modules>
 
     <properties>
@@ -35,7 +36,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.railsdev.rails.Rails</mainClass>
+                            <mainClass>com.railsdev.rails.demo.Rails</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
