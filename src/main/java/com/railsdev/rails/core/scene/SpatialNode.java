@@ -13,11 +13,6 @@ public class SpatialNode extends AbstractNode {
     }
 
     @Override
-    public boolean push(AbstractNode node) {
-        return false;
-    }
-
-    @Override
     public Matrix4x3f getLocalTransform(Matrix4x3f dest) {
         return dest.set(localTransform);
     }

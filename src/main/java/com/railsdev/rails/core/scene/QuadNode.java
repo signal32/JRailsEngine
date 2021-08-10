@@ -2,6 +2,10 @@ package com.railsdev.rails.core.scene;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
+import org.joml.Math;
+
+import java.util.Arrays;
+import java.util.Iterator;
 
 /**
  * Quad-Tree Node implementation to perform spatial partitioning.
@@ -9,6 +13,42 @@ import org.joml.*;
  */
 public class QuadNode extends AbstractNode {
 
+    /**
+     * Iterator for quad nodes
+     */
+    public static class QuadTreeIterator implements Iterator<QuadNode>{
+
+        public enum Strategy{
+            INCLUSIVE,
+            EXCLUSIVE,
+            ALL
+        }
+
+        QuadNode node;
+        Vector3f target;
+        Strategy strategy;
+
+        public QuadTreeIterator(QuadNode node, Vector3f target, Strategy strategy){
+            this.node = node;
+            this.target = target;
+            this.strategy = strategy;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !node.atomic;
+        }
+
+        @Override
+        public QuadNode next() {
+            node = node.quadrants[ node.getQuad(target) ];
+            return node;
+        }
+    }
+
+    /**
+     * Quad descriptors
+     */
     public enum Quad{
         NE,
         SE,
@@ -65,12 +105,6 @@ public class QuadNode extends AbstractNode {
             quadrants[3] = new QuadNode(this, new Vector3f(-newSize, 0.0f, -newSize), newSize, newDepth);
         }
 
-        // Move spatials into sub-nodes
- //       for (AbstractNode child : children){
- //           int quad = getQuad(child.getLocalTranslation(vec3));
- //           quadrants[quad].push(child);
- //       }
-
         for (int i = 0; i < children.size(); i++) {
             AbstractNode child = children.pop();
             int quad = getQuad(child.getLocalTranslation(vec3));
@@ -90,8 +124,30 @@ public class QuadNode extends AbstractNode {
 
     }
 
+    public QuadNode getQuadrant(Quad quad){
+        switch (quad){
+            case NE: return quadrants[0];
+            case SE: return quadrants[1];
+            case SW: return quadrants[2];
+            case NW: return quadrants[3];
+            default: return this;
+        }
+    }
+
+    public boolean isAtomic() {
+        return atomic;
+    }
+
+    public int getDepth() {
+        return depth;
+    }
+
+    public float getSize() {
+        return size;
+    }
+
     private boolean insideQuad(Vector3f transform){
-        return transform.x > size / 2 || transform.z > size / 2;
+        return Math.abs(transform.x) < size / 2 || Math.abs(transform.z) < size / 2;
     }
 
     public void adoptQuadrant(QuadNode quad, Quad pos){
@@ -99,14 +155,14 @@ public class QuadNode extends AbstractNode {
     }
 
     @Override
-    public boolean push(AbstractNode node) {
+    public void push(AbstractNode node) {
 
         node.parent = this;
 
         // Check if spatial belongs in this quad or outside
-//        if (!insideQuad(node.getLocalTranslation(vec3))){
-//            return false;
-//        }
+        if (!insideQuad(node.getLocalTranslation(vec3))){
+            return;
+        }
 
         // Atomic node has no children, add spatial as leaves
         if (children.size() < MAX_CHILDREN)
@@ -116,12 +172,7 @@ public class QuadNode extends AbstractNode {
             split();
         }
 
-        return true;
-    }
-
-    @Override
-    public Matrix4x3f getLocalTransform(Matrix4x3f dest) {
-        return dest.zero().translate(localTranslation);
+        return;
     }
 
     @Override
@@ -131,7 +182,7 @@ public class QuadNode extends AbstractNode {
 
     @Override
     public void updateEvent() {
-
+        System.out.println("Hello from" + this.depth);
     }
 
     @Override
@@ -141,6 +192,23 @@ public class QuadNode extends AbstractNode {
             return quadrants[getQuad(location)].get(location,dest);
         }
     }
+
+    @Override
+    public String toString() {
+        return "QuadNode{" +
+                "parent=" + parent.getName() +
+                ", localTranslation=" + localTranslation +
+                ", quadrants=" + Arrays.toString(quadrants) +
+                ", atomic=" + atomic +
+                ", depth=" + depth +
+                ", size=" + size +
+                '}';
+    }
+
+    /*    @Override
+    public @NotNull Iterator<AbstractNode> iterator() {
+        return new QuadTreeIterator(this,new Vector3f(), QuadTreeIterator.Strategy.ALL);
+    }*/
 
     /**
      * Create a new QuadNode that encompasses a child.
@@ -171,6 +239,7 @@ public class QuadNode extends AbstractNode {
         for (int i = 0; i < 2600; i++) {
             node.push(new SpatialNode(new Matrix4x3f().translate(1,1,1),null));
         }
+
 
     }
 }

@@ -6,7 +6,6 @@ import com.railsdev.rails.core.scene.SpatialNode;
 import org.joml.Matrix4x3f;
 import org.joml.Random;
 import org.joml.Vector3f;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -33,18 +32,49 @@ class QuadNodeTest {
     }
 
     @Test()
-    @DisplayName("Add random spatials stress test")
+    @DisplayName("Add 500 nodes")
     void addSpatial(){
         QuadNode quadNode = new QuadNode(100);
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 500; i++) {
             quadNode.push(new SpatialNode(new Matrix4x3f().translate(1,1,1),null));
         }
 
         var stuff = quadNode.get(new Vector3f(0,1,1), new AbstractNode[50]);
-        //QuadNode newOne = QuadNode.createParent(quadNode, QuadNode.Quad.NE);
+
+        var itr = new QuadNode.QuadTreeIterator(quadNode, new Vector3f(1,1,1), QuadNode.QuadTreeIterator.Strategy.ALL);
+
+        while (itr.hasNext()){
+            System.out.println(itr.next());
+        }
 
         assertTrue(true);
+    }
+
+    @Test
+    @DisplayName("Create Parent")
+    void createParent(){
+        String childName = "test_child_node";
+        int childSize = 1024;
+
+        // Test placing a child in each possible quadrant of parent
+        for (QuadNode.Quad quad : QuadNode.Quad.values()){
+            QuadNode child = new QuadNode(childSize);
+            child.setName(childName);
+            QuadNode parent = QuadNode.createParent(child, quad);
+
+            // Check child - parent relationship
+            assertEquals(childName, parent.getQuadrant(quad).getName());
+            assertEquals(parent.getDepth(), child.getDepth() - 1);
+            assertEquals(parent.getSize(), childSize * 2);
+            assertFalse(parent.isAtomic());
+
+            // Check child is not also within another quadrant
+            for (QuadNode.Quad otherQuad : QuadNode.Quad.values()) {
+                if (otherQuad == quad) continue;
+                assertNotEquals(childName, parent.getQuadrant(otherQuad).getName());
+            }
+        }
     }
 
 }
