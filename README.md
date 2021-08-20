@@ -3,6 +3,8 @@
 
 Java based Game Engine / Framework.
 
+My first foray into game engine design and implementation. Nowhere near complete let alone production ready but could form a jumping off point for your own projects. Although RailsEngine is now being improved upon and rewritten in C#, pull requests will still be considered. New version will be made public when feature parity is reached.
+
 ### Key Features
 - Vulkan, Metal, DirectX and OpenGL rendering backends via BGFX.
 - Floating Origin implementation for large virtual world support
